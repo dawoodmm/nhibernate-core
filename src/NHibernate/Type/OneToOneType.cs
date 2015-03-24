@@ -52,15 +52,23 @@ namespace NHibernate.Type
 			get { return true; }
 		}
 
-		public override bool IsDirty(object old, object current, ISessionImplementor session)
-		{
-			return false;
-		}
+        public override bool IsDirty(object old, object current, ISessionImplementor session)
+        {
+            return false;
+        }
+        public override bool IsDeleteDirty(object old, object current, ISessionImplementor session)
+        {
+            return false;
+        }
 
 		public override bool IsDirty(object old, object current, bool[] checkable, ISessionImplementor session)
 		{
 			return false;
 		}
+        public override bool IsDeleteDirty(object old, object current, bool[] checkable, ISessionImplementor session)
+        {
+            return false;
+        }
 
 		public override bool IsModified(object old, object current, bool[] checkable, ISessionImplementor session)
 		{

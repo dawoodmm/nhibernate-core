@@ -109,9 +109,15 @@ namespace NHibernate.Type
 		{
 			return !IsSame(old, current, session.EntityMode);
 		}
+        public virtual bool IsDeleteDirty(object old, object current, ISessionImplementor session)
+        {
+            if (old != null && current != null && session.BestGuessEntityName(current) != session.BestGuessEntityName(old)) return false;
+
+            return IsSame(old, current, session.EntityMode);
+        }
 
 		/// <summary>
-		/// Retrieves an instance of the mapped class, or the identifier of an entity 
+		/// Retrives an instance of the mapped class, or the identifier of an entity 
 		/// or collection from a <see cref="IDataReader"/>.
 		/// </summary>
 		/// <param name="rs">The <see cref="IDataReader"/> that contains the values.</param>
@@ -215,7 +221,7 @@ namespace NHibernate.Type
 
 		public virtual bool IsSame(object x, object y, EntityMode entityMode)
 		{
-			return IsEqual(x, y, entityMode);
+            return IsEqual(x, y, entityMode);
 		}
 
 		public virtual bool IsEqual(object x, object y, EntityMode entityMode)
@@ -313,6 +319,7 @@ namespace NHibernate.Type
 		/// /> 
 		public abstract string ToLoggableString(object value, ISessionFactoryImplementor factory);
 
-		public abstract bool IsDirty(object old, object current, bool[] checkable, ISessionImplementor session);
-	}
+        public abstract bool IsDirty(object old, object current, bool[] checkable, ISessionImplementor session);
+        public abstract bool IsDeleteDirty(object old, object current, bool[] checkable, ISessionImplementor session);
+    }
 }

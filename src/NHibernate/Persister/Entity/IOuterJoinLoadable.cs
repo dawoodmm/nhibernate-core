@@ -110,7 +110,7 @@ namespace NHibernate.Persister.Entity
 		string GetPropertyTableName(string propertyName);
 
 		/// <summary>
-		/// Return the aliased identifier column names
+		/// Return the alised identifier column names
 		/// </summary>
 		string[] ToIdentifierColumns(string alias);
 

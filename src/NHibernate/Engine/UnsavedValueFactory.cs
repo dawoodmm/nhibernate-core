@@ -5,8 +5,12 @@ using NHibernate.Type;
 
 namespace NHibernate.Engine
 {
-	public static class UnsavedValueFactory
+	public sealed class UnsavedValueFactory
 	{
+		private UnsavedValueFactory()
+		{
+		}
+
 		private static readonly object[] NoParameters = new object[0];
 
 		private static object Instantiate(ConstructorInfo constructor)

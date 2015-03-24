@@ -1159,116 +1159,159 @@ namespace NHibernate.Persister.Collection
 			}
 		}
 
-		public void DeleteRows(IPersistentCollection collection, object id, ISessionImplementor session)
-		{
-			if (!isInverse && RowDeleteEnabled)
-			{
-				if (log.IsDebugEnabled)
-				{
-					log.Debug("Deleting rows of collection: " + MessageHelper.CollectionInfoString(this, collection, id, session));
-				}
+        public void PreDeleteCollectionActionRows(IPersistentCollection collection, object id, ISessionImplementor session)
+        {
+            SqlCommandInfo preDeleteActionString = null;
+            bool preDeleteActionPossible = false;
+            ExecuteUpdateResultCheckStyle expectation = null;
+            switch (collection.PreEntityDeleteCollectionActionType)
+            {
+                case PreEntityDeleteCollectionActionTypes.Delete:
+                    preDeleteActionString = this.SqlDeleteRowString;
+                    preDeleteActionPossible = this.RowDeleteEnabled;
+                    expectation = deleteCheckStyle;
+                    break;
+                case PreEntityDeleteCollectionActionTypes.UpdateToNull:
+                    preDeleteActionString = this.SqlUpdateRowString;
+                    preDeleteActionPossible = collection.RowUpdatePossible;
+                    expectation = updateCheckStyle;
+                    break;
+                default:
+                    preDeleteActionString = this.SqlDeleteRowString;
+                    preDeleteActionPossible = this.RowDeleteEnabled;
+                    expectation = deleteCheckStyle;
+                    break;
+            }
 
-				bool deleteByIndex = !IsOneToMany && hasIndex && !indexContainsFormula;
 
-				try
-				{
-					// delete all the deleted entries
-					IEnumerator deletes = collection.GetDeletes(this, !deleteByIndex).GetEnumerator();
-					if (deletes.MoveNext())
-					{
-						deletes.Reset();
-						int offset = 0;
-						int count = 0;
+            //collection update pre delete act on rows
+            //update to null or delete collection reference items that refer to entites that are going to be deleted
 
-						while (deletes.MoveNext())
-						{
-							IDbCommand st;
-							IExpectation expectation = Expectations.AppropriateExpectation(deleteCheckStyle);
-							//bool callable = DeleteCallable;
+            if (!isInverse && preDeleteActionPossible)
+            {
+                if (log.IsDebugEnabled)
+                {
+                    log.Debug(string.Format("Pre Delete {2} rows of collection: {0}#{1}", role, id, collection.PreEntityDeleteCollectionActionType));
+                }
 
-							bool useBatch = expectation.CanBeBatched;
-							if (useBatch)
-							{
-								st =
-									session.Batcher.PrepareBatchCommand(SqlDeleteRowString.CommandType, SqlDeleteRowString.Text,
-																		SqlDeleteRowString.ParameterTypes);
-							}
-							else
-							{
-								st =
-									session.Batcher.PrepareCommand(SqlDeleteRowString.CommandType, SqlDeleteRowString.Text,
-																   SqlDeleteRowString.ParameterTypes);
-							}
-							try
-							{
-								object entry = deletes.Current;
-								int loc = offset;
-								if (hasIdentifier)
-								{
-									WriteIdentifier(st, entry, loc, session);
-								}
-								else
-								{
-									loc = WriteKey(st, id, loc, session);
+                // predelete update all the required items
+                int count = this.DoPreDeleteActionRows(id, collection, session, preDeleteActionString, expectation);
 
-									if (deleteByIndex)
-									{
-										WriteIndexToWhere(st, entry, loc, session);
-									}
-									else
-									{
-										WriteElementToWhere(st, entry, loc, session);
-									}
-								}
-								if (useBatch)
-								{
-									session.Batcher.AddToBatch(expectation);
-								}
-								else
-								{
-									expectation.VerifyOutcomeNonBatched(session.Batcher.ExecuteNonQuery(st), st);
-								}
-								count++;
-							}
-							catch (Exception e)
-							{
-								if (useBatch)
-								{
-									session.Batcher.AbortBatch(e);
-								}
-								throw;
-							}
-							finally
-							{
-								if (!useBatch)
-								{
-									session.Batcher.CloseCommand(st, null);
-								}
-							}
-						}
+                if (log.IsDebugEnabled)
+                {
+                    log.Debug(string.Format("done Pre Delete {1} rows: {0} updated", count, collection.PreEntityDeleteCollectionActionType));
+                }
+            }
 
-						if (log.IsDebugEnabled)
-						{
-							log.Debug("done deleting collection rows: " + count + " deleted");
-						}
-					}
-					else
-					{
-						if (log.IsDebugEnabled)
-						{
-							log.Debug("no rows to delete");
-						}
-					}
-				}
-				catch (DbException sqle)
-				{
-					throw ADOExceptionHelper.Convert(sqlExceptionConverter, sqle,
-													 "could not delete collection rows: " + MessageHelper.CollectionInfoString(this, collection, id, session));
-				}
-			}
-		}
+            //throw new NotImplementedException();
+        }
 
-		public void InsertRows(IPersistentCollection collection, object id, ISessionImplementor session)
+        protected abstract int DoPreDeleteActionRows(
+            object id, IPersistentCollection collection, ISessionImplementor session, SqlCommandInfo preDeleteActionString, ExecuteUpdateResultCheckStyle expectationStyle);
+
+
+	    public void DeleteRows(IPersistentCollection collection, object id, ISessionImplementor session)
+	    {
+	        if (!isInverse && RowDeleteEnabled)
+	        {
+	            if (log.IsDebugEnabled)
+	            {
+	                log.Debug("Deleting rows of collection: " + MessageHelper.CollectionInfoString(this, collection, id, session));
+	            }
+
+	            bool deleteByIndex = !IsOneToMany && hasIndex && !indexContainsFormula;
+
+	            try
+	            {
+	                // delete all the deleted entries
+	                IEnumerator deletes = collection.GetDeletes(this, !deleteByIndex).GetEnumerator();
+	                int offset = 0;
+	                int count = 0;
+
+	                while (deletes.MoveNext())
+	                {
+	                    IDbCommand st;
+	                    IExpectation expectation = Expectations.AppropriateExpectation(deleteCheckStyle);
+	                    //bool callable = DeleteCallable;
+
+	                    bool useBatch = expectation.CanBeBatched;
+	                    if (useBatch)
+	                    {
+	                        st = session.Batcher.PrepareBatchCommand(SqlDeleteRowString.CommandType, SqlDeleteRowString.Text, SqlDeleteRowString.ParameterTypes);
+	                    }
+	                    else
+	                    {
+	                        st = session.Batcher.PrepareCommand(SqlDeleteRowString.CommandType, SqlDeleteRowString.Text, SqlDeleteRowString.ParameterTypes);
+	                    }
+	                    try
+	                    {
+	                        object entry = deletes.Current;
+	                        int loc = offset;
+	                        if (hasIdentifier)
+	                        {
+	                            WriteIdentifier(st, entry, loc, session);
+	                        }
+	                        else
+	                        {
+	                            loc = WriteKey(st, id, loc, session);
+
+	                            if (deleteByIndex)
+	                            {
+	                                WriteIndexToWhere(st, entry, loc, session);
+	                            }
+	                            else
+	                            {
+	                                WriteElementToWhere(st, entry, loc, session);
+	                            }
+	                        }
+	                        if (useBatch)
+	                        {
+	                            session.Batcher.AddToBatch(expectation);
+	                        }
+	                        else
+	                        {
+	                            expectation.VerifyOutcomeNonBatched(session.Batcher.ExecuteNonQuery(st), st);
+	                        }
+	                        count++;
+	                    }
+	                    catch (Exception e)
+	                    {
+	                        if (useBatch)
+	                        {
+	                            session.Batcher.AbortBatch(e);
+	                        }
+	                        throw;
+	                    }
+	                    finally
+	                    {
+	                        if (!useBatch)
+	                        {
+	                            session.Batcher.CloseCommand(st, null);
+	                        }
+	                    }
+	                }
+
+	                if (log.IsDebugEnabled)
+	                {
+	                    log.Debug("done deleting collection rows: " + count + " deleted");
+	                }
+
+	                if (count == 0)
+	                {
+	                    if (log.IsDebugEnabled)
+	                    {
+	                        log.Debug("no rows to delete");
+	                    }
+	                }
+	            }
+	            catch (DbException sqle)
+	            {
+	                throw ADOExceptionHelper.Convert(sqlExceptionConverter, sqle, "could not delete collection rows: " + MessageHelper.CollectionInfoString(this, collection, id, session));
+	            }
+	        }
+	    }
+
+	    public void InsertRows(IPersistentCollection collection, object id, ISessionImplementor session)
 		{
 			if (!isInverse && RowInsertEnabled)
 			{

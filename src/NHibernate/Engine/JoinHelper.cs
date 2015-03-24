@@ -4,8 +4,12 @@ using NHibernate.Util;
 
 namespace NHibernate.Engine
 {
-	public static class JoinHelper
+	public sealed class JoinHelper
 	{
+		private JoinHelper()
+		{
+		}
+
 		public static ILhsAssociationTypeSqlInfo GetLhsSqlInfo(string alias, int property,
 																										IOuterJoinLoadable lhsPersister, IMapping mapping)
 		{
@@ -27,7 +31,7 @@ namespace NHibernate.Engine
 			IJoinable joinable = type.GetAssociatedJoinable(factory);
 			if (uniqueKeyPropertyName == null)
 			{
-				return joinable.JoinColumnNames;
+				return joinable.KeyColumnNames;
 			}
 			else
 			{

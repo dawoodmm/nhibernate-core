@@ -972,5 +972,10 @@ namespace NHibernate.Impl
 				}
 			}
 		}
+
+        public override IEnumerable<object> GetItemsForDelete()
+	    {
+	       return new List<object>();
+	    }
 	}
 }

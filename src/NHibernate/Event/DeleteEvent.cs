@@ -41,7 +41,7 @@ namespace NHibernate.Event
 		}
 
 		/// <summary>
-		/// Returns the encapsulated entity to be deleted.
+		/// Returns the encapsulated entity to be deleed.
 		/// </summary>
 		public object Entity
 		{

@@ -222,7 +222,7 @@ namespace NHibernate.Collection
 			return result;
 		}
 
-		public override IEnumerable GetDeletes(ICollectionPersister persister, bool indexIsFormula)
+	    public override IEnumerable GetDeletes(ICollectionPersister persister, bool indexIsFormula)
 		{
 			IList deletes = new List<object>();
 			Array sn = (Array) GetSnapshot();

@@ -520,8 +520,15 @@ namespace NHibernate.Type
 			var unwrapped = typeClass.UnwrapIfNullable();
 			if (unwrapped.IsEnum)
 			{
-				return (IType) Activator.CreateInstance(typeof (EnumType<>).MakeGenericType(unwrapped));
-			}
+                try
+                {
+                    return (IType)Activator.CreateInstance(typeof(EnumType<>).MakeGenericType(unwrapped));
+                }
+                catch (Exception e)
+                {
+                    throw new MappingException(string.Format("Can't instantiate enum {0}; The enum can't be empty", typeClass.FullName), e);
+                }
+            }
 
 			if (!typeClass.IsSerializable)
 				return null;

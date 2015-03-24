@@ -13,10 +13,14 @@ namespace NHibernate.Persister
 	/// <summary>
 	/// Factory for <c>IEntityPersister</c> and <c>ICollectionPersister</c> instances.
 	/// </summary>
-	public static class PersisterFactory
+	public sealed class PersisterFactory
 	{
 		//TODO: make ClassPersisters *not* depend on ISessionFactoryImplementor
 		// interface, if possible
+
+		private PersisterFactory()
+		{
+		}
 
 		private static readonly System.Type[] PersisterConstructorArgs = new System.Type[]
 			{

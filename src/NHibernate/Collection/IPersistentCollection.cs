@@ -8,6 +8,16 @@ using NHibernate.Type;
 
 namespace NHibernate.Collection
 {
+    /// <summary>
+    /// If an entity is being deleted, Whether a collection should delete or 
+    /// update to null the rows that reference the deleted entity
+    /// </summary>
+    public enum PreEntityDeleteCollectionActionTypes
+    {
+        Delete,
+        UpdateToNull
+    }
+
 	/// <summary>
 	/// <para>
 	/// Persistent collections are treated as value objects by NHibernate.
@@ -80,6 +90,9 @@ namespace NHibernate.Collection
 		/// </summary>
 		bool IsDirty { get; }
 
+        bool IsPreDeleteUpdateDirty { get; }
+
+
 		/// <summary> Get the snapshot cached by the collection instance </summary>
 		object StoredSnapshot { get; }
 
@@ -95,8 +108,8 @@ namespace NHibernate.Collection
 		/// Clears out any Queued Additions.
 		/// </summary>
 		/// <remarks>
-		/// After a Flush() the database is in sync with the in-memory
-		/// contents of the Collection.  Since everything is in sync remove
+		/// After a Flush() the database is in synch with the in-memory
+		/// contents of the Collection.  Since everything is in synch remove
 		/// any Queued Additions.
 		/// </remarks>
 		void PostAction();
@@ -276,10 +289,12 @@ namespace NHibernate.Collection
 		/// </summary>
 		bool NeedsUpdating(object entry, int i, IType elemType);
 
-		/// <summary>
+	    /// <summary>
 		/// Get all the elements that need deleting
 		/// </summary>
-		IEnumerable GetDeletes(ICollectionPersister persister, bool indexIsFormula);
+        IEnumerable GetDeletes(ICollectionPersister persister, bool indexIsFormula);
+
+        IEnumerable GetPreDeleteItems(ICollectionPersister persister, bool indexIsFormula);
 
 		/// <summary>
 		/// Is this the wrapper for the given underlying collection instance?
@@ -300,7 +315,9 @@ namespace NHibernate.Collection
 		/// <summary></summary>
 		IEnumerable QueuedAdditionIterator { get; }
 
-		/// <summary> Get the "queued" orphans</summary>
+	    PreEntityDeleteCollectionActionTypes PreEntityDeleteCollectionActionType { get; }
+
+	    /// <summary> Get the "queued" orphans</summary>
 		ICollection GetQueuedOrphans(string entityName);
 
 		/// <summary>
@@ -336,5 +353,9 @@ namespace NHibernate.Collection
 		/// that have been orphaned.
 		/// </returns>
 		ICollection GetOrphans(object snapshot, string entityName);
+
+	    void PreDeleteDirty();
+
+	    void ClearPreDeleteDirty();
 	}
 }
