@@ -19,6 +19,7 @@ namespace NHibernate.DomainModel
 		{
 			if (x == y) return true;
 			if (x == null || y == null) return false;
+		    if (!(x is string[]) || !(y is string[])) return false;
 			string[] lhs = (string[]) x;
 			string[] rhs = (string[]) y;
 
