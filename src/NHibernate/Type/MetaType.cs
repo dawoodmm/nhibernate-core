@@ -82,14 +82,10 @@ namespace NHibernate.Type
 			get { return false; }
 		}
 
-        public override bool IsDirty(object old, object current, bool[] checkable, ISessionImplementor session)
-        {
-            return checkable[0] && IsDirty(old, current, session);
-        }
-        public override bool IsDeleteDirty(object old, object current, bool[] checkable, ISessionImplementor session)
-        {
-            return checkable[0] && IsDeleteDirty(old, current, session);
-        }
+		public override bool IsDirty(object old, object current, bool[] checkable, ISessionImplementor session)
+		{
+			return checkable[0] && IsDirty(old, current, session);
+		}
 
 		public override object FromXMLNode(XmlNode xml, IMapping factory)
 		{

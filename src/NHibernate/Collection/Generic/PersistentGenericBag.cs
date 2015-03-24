@@ -37,12 +37,13 @@ namespace NHibernate.Collection.Generic
 		 * expensive than .NET original implementation.
 		 */
 
-		/// For a one-to-many, a <bag> is not really a bag;
-		/// it is *really* a set, since it can't contain the
-		/// same element twice. It could be considered a bug
-		/// in the mapping dtd that <bag> allows <one-to-many>.
-		/// Anyway, here we implement <set> semantics for a
-		/// <one-to-many> <bag>!
+		/* For a one-to-many, a <bag> is not really a bag;
+		 * it is *really* a set, since it can't contain the
+		 * same element twice. It could be considered a bug
+		 * in the mapping dtd that <bag> allows <one-to-many>.
+		 * Anyway, here we implement <set> semantics for a
+		 * <one-to-many> <bag>!
+		 */
 		private IList<T> _gbag;
 
 		public PersistentGenericBag()
@@ -183,12 +184,11 @@ namespace NHibernate.Collection.Generic
 			else
 			{
 				Initialize(true);
-			    if (_gbag.Count != 0)
-			    {
-			        _gbag.Clear();
-			        if (ActionQueue.PreDeleteUpdate) this.PreDeleteDirty();
-			        else Dirty();
-			    }
+				if (_gbag.Count != 0)
+				{
+					_gbag.Clear();
+					Dirty();
+				}
 			}
 		}
 
@@ -212,9 +212,8 @@ namespace NHibernate.Collection.Generic
 			var result = _gbag.Remove(item);
 			if (result)
 			{
-                if (ActionQueue.PreDeleteUpdate) this.PreDeleteDirty();
-                else Dirty();
-            }
+				Dirty();
+			}
 			return result;
 		}
 
@@ -246,7 +245,7 @@ namespace NHibernate.Collection.Generic
 
 		public void RemoveAt(int index)
 		{
-			this.DeleteWrite();
+			Write();
 			_gbag.RemoveAt(index);
 		}
 
@@ -318,9 +317,7 @@ namespace NHibernate.Collection.Generic
 			return result;
 		}
 
-
-
-	    public override IEnumerable Entries(ICollectionPersister persister)
+		public override IEnumerable Entries(ICollectionPersister persister)
 		{
 			return _gbag;
 		}
@@ -330,9 +327,7 @@ namespace NHibernate.Collection.Generic
 			return entry != null;
 		}
 
-	    
-
-	    public override bool EqualsSnapshot(ICollectionPersister persister)
+		public override bool EqualsSnapshot(ICollectionPersister persister)
 		{
 			var elementType = persister.ElementType;
 			var entityMode = Session.EntityMode;
@@ -442,9 +437,7 @@ namespace NHibernate.Collection.Generic
 			}
 		}
 
-	    
-
-	    public override bool IsSnapshotEmpty(object snapshot)
+		public override bool IsSnapshotEmpty(object snapshot)
 		{
 			return ((ICollection) snapshot).Count == 0;
 		}

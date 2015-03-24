@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.Serialization;
 using System.Security;
@@ -615,12 +614,7 @@ namespace NHibernate.Impl
 			Dispose(true);
 		}
 
-        public override IEnumerable<object> GetItemsForDelete()
-        {
-            return actionQueue.CloneDeletions().Select(da => da.Instance);
-        }
-
-	    public override void List(IQueryExpression queryExpression, QueryParameters queryParameters, IList results)
+		public override void List(IQueryExpression queryExpression, QueryParameters queryParameters, IList results)
 		{
 			using (new SessionIdLoggingContext(SessionId))
 			{

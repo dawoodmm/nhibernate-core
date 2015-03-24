@@ -161,11 +161,11 @@ namespace NHibernate.Event.Default
 		{
 			if (@event.RequestedId == null)
 			{
-				return SaveWithGeneratedId(@event.Entity, @event.EntityName, null, @event.Session, true, @event.ForPreDelete );
+				return SaveWithGeneratedId(@event.Entity, @event.EntityName, null, @event.Session, true);
 			}
 			else
 			{
-                return SaveWithRequestedId(@event.Entity, @event.RequestedId, @event.EntityName, null, @event.Session, @event.ForPreDelete);
+				return SaveWithRequestedId(@event.Entity, @event.RequestedId, @event.EntityName, null, @event.Session);
 			}
 		}
 

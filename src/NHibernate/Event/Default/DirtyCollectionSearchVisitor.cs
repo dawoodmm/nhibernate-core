@@ -33,8 +33,7 @@ namespace NHibernate.Event.Default
 	{
 		private readonly bool[] propertyVersionability;
 		private bool dirty = false;
-        private bool preDeleteDirty = false;
-        
+
 		public DirtyCollectionSearchVisitor(IEventSource session, bool[] propertyVersionability)
 			: base(session)
 		{
@@ -49,10 +48,6 @@ namespace NHibernate.Event.Default
 		{
 			get { return dirty; }
 		}
-        public bool WasPreDeleteDirtyCollectionFound
-        {
-            get { return preDeleteDirty; }
-        }
 
 		internal override object ProcessCollection(object collection, CollectionType type)
 		{
@@ -84,13 +79,6 @@ namespace NHibernate.Event.Default
 					dirty = true;
 					return null; //NOTE: EARLY EXIT!
 				}
-
-                if (persistentCollection.IsPreDeleteUpdateDirty)
-                {
-                    //we need to check even if it was not initialized, because of delayed adds!
-                    preDeleteDirty = true;
-                    return null; //NOTE: EARLY EXIT!
-                }
 			}
 			return null;
 		}

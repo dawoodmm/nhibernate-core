@@ -66,8 +66,17 @@ namespace NHibernate.Persister.Collection
 		{
 			var update = new SqlUpdateBuilder(Factory.Dialect, Factory)
 				.SetTableName(qualifiedTableName)
-				.AddColumns(KeyColumnNames, "null")
-				.SetIdentityColumn(KeyColumnNames, KeyType);
+				.AddColumns(JoinColumnNames, "null");
+
+			if (CollectionType.UseLHSPrimaryKey)
+			{
+				update.SetIdentityColumn(KeyColumnNames, KeyType);
+			}
+			else
+			{
+				var ownerPersister = (IOuterJoinLoadable)OwnerEntityPersister;
+				update.SetJoin(ownerPersister.TableName, KeyColumnNames, KeyType, JoinColumnNames, ownerPersister.GetPropertyColumnNames(CollectionType.LHSPropertyName));
+			}
 
 			if (HasIndex)
 				update.AddColumns(IndexColumnNames, "null");
@@ -150,158 +159,12 @@ namespace NHibernate.Persister.Collection
 			return true;
 		}
 
-	    protected override int DoPreDeleteActionRows(
-	        object id, IPersistentCollection collection, ISessionImplementor session, SqlCommandInfo preDeleteActionString, ExecuteUpdateResultCheckStyle expectationStyle)
-	    {
+		public override string GenerateTableAliasForKeyColumns(string alias)
+		{
+			return CollectionType.UseLHSPrimaryKey ? alias : alias + "owner_";
+		}
 
-	        //base.DeleteRows(collection, id, session);
-	        //return 0;
-	        bool deleteByIndex = false; //!IsOneToMany && HasIndex && !indexContainsFormula;
-	        int count = 0;
-	        var actionType = collection.PreEntityDeleteCollectionActionType;
-	        try
-	        {
-	            IEnumerator preDeletes = collection.GetPreDeleteItems(this, !deleteByIndex).GetEnumerator();
-	            //IEnumerator preDeletes = collection.GetPreDeleteItems(this, true).GetEnumerator();
-	            int offset = 0;
-	            int i = 0;
-	            while (preDeletes.MoveNext())
-	            {
-	                object entry = preDeletes.Current;
-	                i = preDeletes.Current is int ? (int)preDeletes.Current : 0;
-	                if (RowDeleteEnabled)
-	                {
-	                    IDbCommand st = null;
-	                    IExpectation deleteExpectation = Expectations.AppropriateExpectation(DeleteCheckStyle);
-
-	                    bool useBatch = deleteExpectation.CanBeBatched;
-
-	                    if (useBatch)
-	                    {
-	                        st = session.Batcher.PrepareBatchCommand(SqlDeleteRowString.CommandType, SqlDeleteRowString.Text, SqlDeleteRowString.ParameterTypes);
-	                    }
-	                    else
-	                    {
-	                        st = session.Batcher.PrepareCommand(SqlDeleteRowString.CommandType, SqlDeleteRowString.Text, SqlDeleteRowString.ParameterTypes);
-	                    }
-
-	                    try
-	                    {
-	                        //from delete
-	                        int loc = offset;
-	                        //from update
-	                        loc = WriteKey(st, id, loc, session);
-	                        WriteElementToWhere(st, entry, loc, session);
-
-	                        if (useBatch)
-	                        {
-	                            session.Batcher.AddToBatch(deleteExpectation);
-	                        }
-	                        else
-	                        {
-	                            deleteExpectation.VerifyOutcomeNonBatched(session.Batcher.ExecuteNonQuery(st), st);
-	                        }
-	                        //count++;
-	                    }
-	                    catch (Exception e)
-	                    {
-	                        if (useBatch)
-	                        {
-	                            session.Batcher.AbortBatch(e);
-	                        }
-	                        throw;
-	                    }
-	                    finally
-	                    {
-	                        if (!useBatch)
-	                        {
-	                            session.Batcher.CloseCommand(st, null);
-	                        }
-	                    }
-
-
-
-	                }
-
-	                //i++;
-	                count++;
-
-
-
-	                IEnumerable entries = collection.Entries(this);
-
-                    //foreach (object entry in entries)
-                    //{
-                    //    if (collection.NeedsUpdating(entry, i, ElementType))
-                    //    {
-                    //        if ( //collection.PreEntityDeleteCollectionActionType == PreEntityDeleteCollectionActionTypes.UpdateToNull && 
-                    //            RowInsertEnabled)
-                    //        {
-                    //            IExpectation insertExpectation = Expectations.AppropriateExpectation(InsertCheckStyle);
-                    //            //bool callable = InsertCallable;
-                    //            bool useBatch = insertExpectation.CanBeBatched;
-                    //            SqlCommandInfo sql = SqlInsertRowString;
-
-
-
-                    //            IDbCommand st = null;
-                    //            if (useBatch)
-                    //            {
-                    //                st = session.Batcher.PrepareBatchCommand(SqlInsertRowString.CommandType, sql.Text, SqlInsertRowString.ParameterTypes);
-                    //            }
-                    //            else
-                    //            {
-                    //                st = session.Batcher.PrepareCommand(SqlInsertRowString.CommandType, sql.Text, SqlInsertRowString.ParameterTypes);
-                    //            }
-
-                    //            try
-                    //            {
-                    //                //offset += insertExpectation.Prepare(st, Factory.ConnectionProvider.Driver);
-                    //                int loc = WriteKey(st, id, offset, session);
-                    //                if (HasIndex && !indexContainsFormula)
-                    //                {
-                    //                    loc = WriteIndexToWhere(st, collection.GetIndex(entry, i, this), loc, session);
-                    //                }
-                    //                WriteElementToWhere(st, collection.GetElement(entry), loc, session);
-                    //                if (useBatch)
-                    //                {
-                    //                    session.Batcher.AddToBatch(insertExpectation);
-                    //                }
-                    //                else
-                    //                {
-                    //                    insertExpectation.VerifyOutcomeNonBatched(session.Batcher.ExecuteNonQuery(st), st);
-                    //                }
-                    //            }
-                    //            catch (Exception e)
-                    //            {
-                    //                if (useBatch)
-                    //                {
-                    //                    session.Batcher.AbortBatch(e);
-                    //                }
-                    //                throw;
-                    //            }
-                    //            finally
-                    //            {
-                    //                if (!useBatch && st != null)
-                    //                {
-                    //                    session.Batcher.CloseCommand(st, null);
-                    //                }
-                    //            }
-                    //        }
-                    //    }
-                    //}
-	            }
-
-	        }
-	        catch (DbException sqle)
-	        {
-	            throw ADOExceptionHelper.Convert(SQLExceptionConverter, sqle, "could not delete collection rows: " + MessageHelper.CollectionInfoString(this, collection, id, session));
-	        }
-	        return count;
-
-	    }
-
-	    protected override int DoUpdateRows(object id, IPersistentCollection collection, ISessionImplementor session)
+		protected override int DoUpdateRows(object id, IPersistentCollection collection, ISessionImplementor session)
 		{
 			// we finish all the "removes" first to take care of possible unique 
 			// constraints and so that we can take better advantage of batching
@@ -338,8 +201,8 @@ namespace NHibernate.Persister.Collection
 
 							try
 							{
-                                int loc = WriteKey(st, id, offset, session);
-                                WriteElementToWhere(st, collection.GetSnapshotElement(entry, i), loc, session);
+								int loc = WriteKey(st, id, offset, session);
+								WriteElementToWhere(st, collection.GetSnapshotElement(entry, i), loc, session);
 								if (useBatch)
 								{
 									session.Batcher.AddToBatch(deleteExpectation);
@@ -471,7 +334,7 @@ namespace NHibernate.Persister.Collection
 			for (int i = 0; i < columnNames.Length; i++)
 			{
 				var column = columnNames[i];
-				var tableAlias = ojl.GenerateTableAliasForColumn(alias, column);
+				var tableAlias = CollectionType.UseLHSPrimaryKey ? ojl.GenerateTableAliasForColumn(alias, column) : GenerateTableAliasForKeyColumns(alias);
 				selectFragment.AddColumn(tableAlias, column, columnAliases[i]);
 			}
 			return selectFragment;
@@ -487,7 +350,26 @@ namespace NHibernate.Persister.Collection
 
 		public override SqlString FromJoinFragment(string alias, bool innerJoin, bool includeSubclasses)
 		{
-			return ((IJoinable)ElementPersister).FromJoinFragment(alias, innerJoin, includeSubclasses);
+			var elementJoinFragment = ((IJoinable)ElementPersister).FromJoinFragment(alias, innerJoin, includeSubclasses);
+
+			if (CollectionType.UseLHSPrimaryKey)
+			{
+				return elementJoinFragment;
+			}
+
+			JoinFragment join = Factory.Dialect.CreateOuterJoinFragment();
+
+			var lhsKeyColumnNames = new string[JoinColumnNames.Length];
+			int k = 0;
+			foreach (string columnName in JoinColumnNames)
+			{
+				lhsKeyColumnNames[k] = alias + StringHelper.Dot + columnName;
+				k++;
+			}
+
+			var ownerPersister = (IOuterJoinLoadable)OwnerEntityPersister;
+			join.AddJoin(ownerPersister.TableName, GenerateTableAliasForKeyColumns(alias), lhsKeyColumnNames, ownerPersister.GetPropertyColumnNames(CollectionType.LHSPropertyName), innerJoin ? JoinType.InnerJoin : JoinType.LeftOuterJoin);
+			return join.ToFromFragmentString + elementJoinFragment;
 		}
 
 		public override SqlString WhereJoinFragment(string alias, bool innerJoin, bool includeSubclasses)
@@ -500,8 +382,7 @@ namespace NHibernate.Persister.Collection
 			get { return ((IJoinable)ElementPersister).TableName; }
 		}
 
-
-	    protected override string FilterFragment(string alias)
+		protected override string FilterFragment(string alias)
 		{
 			string result = base.FilterFragment(alias);
 			var j = ElementPersister as IJoinable;

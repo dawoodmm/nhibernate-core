@@ -216,40 +216,7 @@ namespace NHibernate.Collection.Generic
 			return result;
 		}
 
-        public override IEnumerable GetPreDeleteItems(ICollectionPersister persister, bool indexIsFormula)
-        {
-            //deletes.AddRange(sn.Where(obj => !WrappedSet.Contains(obj)));
-
-
-            IType elementType = persister.ElementType;
-            var sn = (ISetSnapshot<T>)GetSnapshot();
-            var deletes = new List<T>(((ICollection<T>)sn).Count);
-
-            if (elementType.IsEntityType)
-            {
-
-                var deletedItems = Session.GetItemsForDelete();
-
-                deletes = sn.Intersect(deletedItems.OfType<T>()).ToList();
-            }
-            else
-            {
-                deletes = sn.Except(WrappedSet).ToList();
-            }
-
-
-            foreach (var obj in WrappedSet)
-            {
-                T oldValue;
-                if (sn.TryGetValue(obj, out oldValue) && elementType.IsDirty(obj, oldValue, Session))
-                    deletes.Add(oldValue);
-            }
-
-            return deletes;
-
-        }
-
-	    public override IEnumerable GetDeletes(ICollectionPersister persister, bool indexIsFormula)
+		public override IEnumerable GetDeletes(ICollectionPersister persister, bool indexIsFormula)
 		{
 			IType elementType = persister.ElementType;
 			var sn = (ISetSnapshot<T>)GetSnapshot();
@@ -270,7 +237,7 @@ namespace NHibernate.Collection.Generic
 
 		public override bool NeedsInserting(object entry, int i, IType elemType)
 		{
-			var sn = (ISetSnapshot<T>)((!ActionQueue.PreDeleteUpdate)?GetSnapshot():StoredSnapshot);
+			var sn = (ISetSnapshot<T>)GetSnapshot();
 			T oldKey;
 
 			// note that it might be better to iterate the snapshot but this is safe,
@@ -385,9 +352,8 @@ namespace NHibernate.Collection.Generic
 
 			// Intersect can only remove, so if the set was modified the count must decrease.
 			if (oldCount != newCount)
-                if (ActionQueue.PreDeleteUpdate) this.PreDeleteDirty();
-                else Dirty();
-        }
+				Dirty();
+		}
 
 		public void ExceptWith(IEnumerable<T> other)
 		{
@@ -403,9 +369,8 @@ namespace NHibernate.Collection.Generic
 
 			// Except can only remove, so if the set was modified the count must decrease.
 			if (oldCount != newCount)
-                if (ActionQueue.PreDeleteUpdate) this.PreDeleteDirty();
-                else Dirty();
-        }
+				Dirty();
+		}
 
 		public void SymmetricExceptWith(IEnumerable<T> other)
 		{
@@ -466,9 +431,8 @@ namespace NHibernate.Collection.Generic
 				Initialize(true);
 				if (WrappedSet.Remove(o))
 				{
-                    if (ActionQueue.PreDeleteUpdate) this.PreDeleteDirty();
-                    else Dirty();
-                    return true;
+					Dirty();
+					return true;
 				}
 				return false;
 			}
@@ -493,9 +457,8 @@ namespace NHibernate.Collection.Generic
 				if (WrappedSet.Count != 0)
 				{
 					WrappedSet.Clear();
-                    if (ActionQueue.PreDeleteUpdate) this.PreDeleteDirty();
-                    else Dirty();
-                }
+					Dirty();
+				}
 			}
 		}
 

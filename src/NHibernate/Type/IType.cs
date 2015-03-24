@@ -72,8 +72,6 @@ namespace NHibernate.Type
 		bool IsDirty(object old, object current, ISessionImplementor session);
 
 		bool IsDirty(object old, object current, bool[] checkable, ISessionImplementor session);
-        bool IsDeleteDirty(object check, object deleted, ISessionImplementor session);
-        bool IsDeleteDirty(object check, object deleted, bool[] checkable, ISessionImplementor session);
 
 		bool IsModified(object oldHydratedState, object currentState, bool[] checkable, ISessionImplementor session);
 

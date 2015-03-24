@@ -50,7 +50,5 @@ namespace NHibernate.Event
 			get { return replicationMode; }
 			set { replicationMode = value; }
 		}
-
-	    public bool ForPreDelete { get; set; }
 	}
 }

@@ -75,6 +75,5 @@ namespace NHibernate.Event
 		PostCollectionRemove,
 		/// <summary>Xml value: post-collection-update </summary>
 		PostCollectionUpdate,
-
 	}
 }

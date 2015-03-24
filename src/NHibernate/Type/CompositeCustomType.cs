@@ -225,10 +225,6 @@ namespace NHibernate.Type
 		{
 			return IsDirty(old, current, session);
 		}
-        public override bool IsDeleteDirty(object old, object current, bool[] checkable, ISessionImplementor session)
-        {
-            return IsDeleteDirty(old, current, session);
-        }
 
 		public bool[] PropertyNullability
 		{

@@ -13,26 +13,17 @@ namespace NHibernate.Event
 		private object[] databaseSnapshot;
 		private int[] dirtyProperties;
 		private bool hasDirtyCollection;
-        private bool hasPredeleteDirtyCollection;
-        private bool dirtyCheckPossible;
+		private bool dirtyCheckPossible;
 		private bool dirtyCheckHandledByInterceptor;
 
-	    private object _previousVersion=null;
-
-	    public FlushEntityEvent(IEventSource source, object entity, EntityEntry entry)
+		public FlushEntityEvent(IEventSource source, object entity, EntityEntry entry)
 			: base(source)
 		{
 			this.entity = entity;
 			entityEntry = entry;
 		}
 
-        public object PreviousVersion
-        {
-            get { return this._previousVersion; }
-            set { this._previousVersion = value; }
-        }
-
-	    public object Entity
+		public object Entity
 		{
 			get { return entity; }
 		}
@@ -65,12 +56,6 @@ namespace NHibernate.Event
 			get { return hasDirtyCollection; }
 			set { hasDirtyCollection = value; }
 		}
-
-        public bool HasPredeleteDirtyCollection
-        {
-            get { return hasPredeleteDirtyCollection; }
-            set { hasPredeleteDirtyCollection = value; }
-        }
 
 		public bool DirtyCheckPossible
 		{

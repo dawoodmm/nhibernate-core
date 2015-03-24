@@ -34,7 +34,7 @@ namespace NHibernate.Event.Default
 						if (IsOwnerUnchanged(persistentCollection, persister, ExtractCollectionKeyFromOwner(persister)))
 						{
 							// a "detached" collection that originally belonged to the same entity
-                            if (persistentCollection.IsDirty || persistentCollection.IsPreDeleteUpdateDirty)
+							if (persistentCollection.IsDirty)
 							{
 								throw new HibernateException("reassociated object has dirty collection: " + persistentCollection.Role);
 							}

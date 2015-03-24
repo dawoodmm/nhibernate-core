@@ -155,73 +155,7 @@ namespace NHibernate.Type
 			return false;
 		}
 
-        public override bool IsDeleteDirty(object x, object deleted, ISessionImplementor session)
-        {
-            if (x == deleted)
-            {
-                return false;
-            }
-            /* 
-             * NH Different behavior : we don't use the shortcut because NH-1101 
-             * let the tuplizer choose how cosiderer properties when the component is null.
-             */
-            EntityMode entityMode = session.EntityMode;
-            if (entityMode != EntityMode.Poco && (x == null || deleted == null))
-            {
-                return true;
-            }
-            object[] xvalues = GetPropertyValues(x, entityMode);
-            for (int i = 0; i < xvalues.Length; i++)
-            {
-                if (propertyTypes[i].IsDirty(xvalues[i], deleted, session))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-        public override bool IsDeleteDirty(object check, object deleted, bool[] checkable, ISessionImplementor session)
-	    {
-	        if (check == deleted)
-	        {
-	            return true;
-	        }
-
-	        EntityMode entityMode = session.EntityMode;
-	        if (entityMode != EntityMode.Poco && (check == null || deleted == null))
-	        {
-	            return false;
-	        }
-            object[] xvalues = GetPropertyValues(check, entityMode);
-            int loc = 0;
-            for (int i = 0; i < xvalues.Length; i++)
-            {
-                int len = propertyTypes[i].GetColumnSpan(session.Factory);
-                if (len <= 1)
-                {
-                    bool dirty = (len == 0 || checkable[loc]) &&
-                                 propertyTypes[i].IsDeleteDirty(xvalues[i], deleted, session);
-                    if (dirty)
-                    {
-                        return true;
-                    }
-                }
-                else
-                {
-                    bool[] subcheckable = new bool[len];
-                    Array.Copy(checkable, loc, subcheckable, 0, len);
-                    bool dirty = propertyTypes[i].IsDeleteDirty(xvalues[i], deleted, subcheckable, session);
-                    if (dirty)
-                    {
-                        return true;
-                    }
-                }
-                loc += len;
-            }
-            return false;
-        }
-
-	    public override bool IsDirty(object x, object y, bool[] checkable, ISessionImplementor session)
+		public override bool IsDirty(object x, object y, bool[] checkable, ISessionImplementor session)
 		{
 			if (x == y)
 			{
@@ -707,7 +641,7 @@ namespace NHibernate.Type
 
 		public override bool IsSame(object x, object y, EntityMode entityMode)
 		{
-            if (x == y)
+			if (x == y)
 			{
 				return true;
 			}

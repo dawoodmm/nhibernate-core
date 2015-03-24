@@ -95,7 +95,7 @@ namespace NHibernate.Engine
 		/// <summary> 
 		/// Initialize the role of the collection. 
 		/// </summary>
-		/// <param name="collection">The collection to be updated by reachibility. </param>
+		/// <param name="collection">The collection to be updated by reachability. </param>
 		/// <param name="type">The type of the collection. </param>
 		/// <param name="entity">The owner of the collection. </param>
 		/// <param name="session">The session.</param>
@@ -153,42 +153,38 @@ namespace NHibernate.Engine
 				bool ownerChanged = loadedPersister != currentPersister ||
 					!currentPersister.KeyType.IsEqual(entry.LoadedKey, entry.CurrentKey, entityMode, factory);
 
-			    if (ownerChanged)
-			    {
-			        // do a check
-			        bool orphanDeleteAndRoleChanged = loadedPersister != null && currentPersister != null && loadedPersister.HasOrphanDelete;
+				if (ownerChanged)
+				{
+					// do a check
+					bool orphanDeleteAndRoleChanged = loadedPersister != null && 
+						currentPersister != null && loadedPersister.HasOrphanDelete;
 
-			        if (orphanDeleteAndRoleChanged)
-			        {
-			            throw new HibernateException("Don't change the reference to a collection with cascade=\"all-delete-orphan\": " + loadedPersister.Role);
-			        }
+					if (orphanDeleteAndRoleChanged)
+					{
+						throw new HibernateException("Don't change the reference to a collection with cascade=\"all-delete-orphan\": " + loadedPersister.Role);
+					}
 
-			        // do the work
-			        if (currentPersister != null)
-			        {
-			            entry.IsDorecreate = true; // we will need to create new entries
-			        }
+					// do the work
+					if (currentPersister != null)
+					{
+						entry.IsDorecreate = true; // we will need to create new entries
+					}
 
-			        if (loadedPersister != null)
-			        {
-			            entry.IsDoremove = true; // we will need to remove ye olde entries
-			            if (entry.IsDorecreate)
-			            {
-			                log.Debug("Forcing collection initialization");
-			                collection.ForceInitialization(); // force initialize!
-			            }
-			        }
-			    }
-			    else
-			    {
-			        if (collection.IsDirty) // else if it's elements changed
-			            entry.IsDoupdate = true;
-
-			        if (collection.IsPreDeleteUpdateDirty) // something got removed
-			            entry.IsDoPreDeleteUpdate = true;
-
-
-			    }
+					if (loadedPersister != null)
+					{
+						entry.IsDoremove = true; // we will need to remove ye olde entries
+						if (entry.IsDorecreate)
+						{
+							log.Debug("Forcing collection initialization");
+							collection.ForceInitialization(); // force initialize!
+						}
+					}
+				}
+				else if (collection.IsDirty)
+				{
+					// else if it's elements changed
+					entry.IsDoupdate = true;
+				}
 			}
 		}
 	}

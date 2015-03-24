@@ -219,37 +219,6 @@ namespace NHibernate.Type
 				return GetIdentifierType(session).IsDirty(oldid, newid, checkable, session);
 			}
 		}
-        public override bool IsDeleteDirty(object old, object current, ISessionImplementor session)
-        {
-            if (IsSame(old, current, session.EntityMode))
-            {
-                return true;
-            }
-
-            object oldid = GetIdentifier(old, session);
-            object newid = GetIdentifier(current, session);
-            return GetIdentifierType(session).IsDeleteDirty(oldid, newid, session);
-        }
-        public override bool IsDeleteDirty(object old, object current, bool[] checkable, ISessionImplementor session)
-        {
-            if (NHibernateUtil.GuessType(old) != NHibernateUtil.GuessType(current)) return false;
-
-            if (IsAlwaysDirtyChecked)
-            {
-                return IsDeleteDirty(old, current, session);
-            }
-            else
-            {
-                if (IsSame(old, current, session.EntityMode))
-                {
-                    return true;
-                }
-
-                object oldid = GetIdentifier(old, session);
-                object newid = GetIdentifier(current, session);
-                return GetIdentifierType(session).IsDeleteDirty(oldid, newid, checkable, session);
-            }
-        }
 
 		public override bool IsNullable
 		{

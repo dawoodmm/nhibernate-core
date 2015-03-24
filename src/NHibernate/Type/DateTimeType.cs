@@ -90,8 +90,6 @@ namespace NHibernate.Type
 				return false;
 			}
 
-            if (!(x is DateTime) || !(y is DateTime)) return false;
-
 			DateTime date1 = (DateTime) x;
 			DateTime date2 = (DateTime) y;
 

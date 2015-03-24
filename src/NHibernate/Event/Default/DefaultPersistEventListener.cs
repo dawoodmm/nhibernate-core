@@ -120,7 +120,7 @@ namespace NHibernate.Event.Default
 			createCache[entity] = entity;
 			if (tempObject == null)
 			{
-                SaveWithGeneratedId(entity, @event.EntityName, createCache, source, false, @event.ForPreDelete);
+				SaveWithGeneratedId(entity, @event.EntityName, createCache, source, false);
 			}
 		}
 	}

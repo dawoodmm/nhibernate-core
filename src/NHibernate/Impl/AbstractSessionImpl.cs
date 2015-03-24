@@ -88,9 +88,7 @@ namespace NHibernate.Impl
 			return new CacheKey(id, type, entityOrRoleName, EntityMode, Factory);
 		}
 
-	    public abstract IEnumerable<object> GetItemsForDelete();
-
-	    public ISessionFactoryImplementor Factory
+		public ISessionFactoryImplementor Factory
 		{
 			get { return factory; }
 			protected set { factory = value; }

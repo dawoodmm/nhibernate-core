@@ -262,36 +262,6 @@ namespace NHibernate.Type
 			}
 		}
 
-
-        public static bool IsDeleteDirty(StandardProperty property,
-                                object check,
-                                object deleted,
-                                bool[] includeColumns,
-                                bool anyUninitializedProperties,
-                                ISessionImplementor session)
-        {
-
-            //int[] results = null;
-            //int count = 0;
-            //int span = properties.Length;
-            //properties[1].Type.IsDeleteDirty()
-            //for (int i = 0; i < span; i++)
-            {
-                var dirty = DeleteDirty(property, check, deleted, includeColumns, anyUninitializedProperties, session);
-                return dirty;
-                
-                //if (dirty)
-                //{
-                //    if (results == null)
-                //    {
-                //        results = new int[span];
-                //    }
-                //}
-            }
-            
-        }
-
-
 		private static bool Dirty(StandardProperty[] properties, object[] currentState, object[] previousState, bool[][] includeColumns, bool anyUninitializedProperties, ISessionImplementor session, int i)
 		{
 			if (Equals(LazyPropertyInitializer.UnfetchedProperty, currentState[i]))
@@ -301,15 +271,6 @@ namespace NHibernate.Type
 			return properties[i].IsDirtyCheckable(anyUninitializedProperties) &&
 				   properties[i].Type.IsDirty(previousState[i], currentState[i], includeColumns[i], session);
 		}
-        private static bool DeleteDirty(StandardProperty property, object check , object deleted, bool[] includeColumns, bool anyUninitializedProperties, ISessionImplementor session)
-        {
-            //if (Equals(LazyPropertyInitializer.UnfetchedProperty, currentState[i]))
-            //    return false;
-            //if (Equals(LazyPropertyInitializer.UnfetchedProperty, previousState[i]))
-            //    return true;
-            return property.IsDirtyCheckable(anyUninitializedProperties) &&
-                   property.Type.IsDeleteDirty(check, deleted, includeColumns, session);
-        }
 
 		/// <summary>
 		/// <para>Determine if any of the given field values are modified, returning an array containing

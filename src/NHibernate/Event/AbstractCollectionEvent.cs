@@ -1,6 +1,4 @@
 using System;
-using System.Diagnostics;
-
 using NHibernate.Collection;
 using NHibernate.Engine;
 using NHibernate.Persister.Collection;
@@ -9,7 +7,6 @@ namespace NHibernate.Event
 {
 	/// <summary> Defines a base class for events involving collections. </summary>
 	[Serializable]
-    [DebuggerDisplay("{GetType().Name,nq}:{AffectedOwnerOrNull}:{AffectedOwnerIdOrNull}")]
 	public abstract class AbstractCollectionEvent : AbstractEvent
 	{
 		private readonly object affectedOwner;

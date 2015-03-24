@@ -272,12 +272,7 @@ namespace NHibernate.DomainModel
 			}
 		}
 
-	    public bool IsDeleteDirty(object check, object deleted, ISessionImplementor session, int propId)
-	    {
-	        return false;
-	    }
-
-	    public int[] FindModified(object[] old, object[] current, object entity, ISessionImplementor session)
+		public int[] FindModified(object[] old, object[] current, object entity, ISessionImplementor session)
 		{
 			if (!EqualsHelper.Equals(old[0], current[0]))
 			{

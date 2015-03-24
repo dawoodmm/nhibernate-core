@@ -127,7 +127,7 @@ namespace NHibernate.Collection.Generic
 			return entry != null;
 		}
 
-	    public override bool EqualsSnapshot(ICollectionPersister persister)
+		public override bool EqualsSnapshot(ICollectionPersister persister)
 		{
 			IType elementType = persister.ElementType;
 			var snap = (ISet<SnapshotElement>)GetSnapshot();
@@ -187,8 +187,7 @@ namespace NHibernate.Collection.Generic
 
 		public override bool NeedsInserting(object entry, int i, IType elemType)
 		{
-            var snap = (ISet<SnapshotElement>)((!ActionQueue.PreDeleteUpdate) ? GetSnapshot() : StoredSnapshot);
-
+			var snap = (ISet<SnapshotElement>)GetSnapshot();
 			object id = GetIdentifier(i);
 			object valueFound = snap.Where(x => Equals(x.Id, id)).Select(x => x.Value).FirstOrDefault();
 
@@ -201,7 +200,7 @@ namespace NHibernate.Collection.Generic
 			{
 				return false;
 			}
-            var snap = (ISet<SnapshotElement>)((!ActionQueue.PreDeleteUpdate) ? GetSnapshot() : StoredSnapshot);
+			var snap = (ISet<SnapshotElement>)GetSnapshot();
 
 			object id = GetIdentifier(i);
 			if (id == null)
@@ -334,9 +333,8 @@ namespace NHibernate.Collection.Generic
 			{
 				_values.Clear();
 				_identifiers.Clear();
-                if (ActionQueue.PreDeleteUpdate) this.PreDeleteDirty();
-                else Dirty();
-            }
+				Dirty();
+			}
 		}
 
 		public bool IsReadOnly
@@ -357,16 +355,10 @@ namespace NHibernate.Collection.Generic
 
 		public void RemoveAt(int index)
 		{
-			this.DeleteWrite();
+			Write();
 			BeforeRemove(index);
 			_values.RemoveAt(index);
 		}
-
-        public override void PreDeleteDirty()
-        {
-            this.Dirty();
-            base.PreDeleteDirty();
-        }
 
 		void IList.Remove(object value)
 		{
@@ -471,9 +463,8 @@ namespace NHibernate.Collection.Generic
 			{
 				BeforeRemove(index);
 				_values.RemoveAt(index);
-                if (ActionQueue.PreDeleteUpdate) this.PreDeleteDirty();
-                else Dirty();
-                return true;
+				Dirty();
+				return true;
 			}
 			return false;
 		}

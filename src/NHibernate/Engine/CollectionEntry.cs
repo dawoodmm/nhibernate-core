@@ -62,10 +62,6 @@ namespace NHibernate.Engine
 		/// </remarks>
 		[NonSerialized] private bool doupdate;
 
-        [NonSerialized]
-        private bool doPreDeleteupdate;
-
-
 		/// <summary>
 		/// Indicates that a Collection has old elements that need to be removed.
 		/// </summary>
@@ -123,8 +119,7 @@ namespace NHibernate.Engine
 			// during flush shouldn't be ignored
 			ignore = false;
 
-            collection.ClearDirty(); //a newly wrapped collection is NOT dirty (or we get unnecessary version updates)
-            collection.ClearPreDeleteDirty(); //a newly wrapped collection is NOT dirty (or we get unnecessary version updates)
+			collection.ClearDirty(); //a newly wrapped collection is NOT dirty (or we get unnecessary version updates)
 
 			snapshot = persister.IsMutable ? collection.GetSnapshot(persister) : null;
 			collection.SetSnapshot(loadedKey, role, snapshot);
@@ -208,12 +203,6 @@ namespace NHibernate.Engine
 			set { doupdate = value; }
 		}
 
-        public bool IsDoPreDeleteUpdate
-        {
-            get { return doPreDeleteupdate; }
-            set { doPreDeleteupdate = value; }
-        }
-
 		public bool IsDoremove
 		{
 			get { return doremove; }
@@ -258,49 +247,26 @@ namespace NHibernate.Engine
 			get { return loadedKey == null; }
 		}
 
-	    /// <summary> 
-	    /// Determine if the collection is "really" dirty, by checking dirtiness
-	    /// of the collection elements, if necessary
-	    /// </summary>
-	    private void Dirty(IPersistentCollection collection)
-	    {
-	        //todo: make a PreDeleteDirty method that is separate from this
-	        // if the collection is initialized and it was previously persistent
-	        // initialize the dirty flag
+		/// <summary> 
+		/// Determine if the collection is "really" dirty, by checking dirtiness
+		/// of the collection elements, if necessary
+		/// </summary>
+		private void Dirty(IPersistentCollection collection)
+		{
+			// if the collection is initialized and it was previously persistent
+			// initialize the dirty flag
+			bool forceDirty = collection.WasInitialized && !collection.IsDirty && LoadedPersister != null
+							  && LoadedPersister.IsMutable
+							  && (collection.IsDirectlyAccessible || LoadedPersister.ElementType.IsMutable)
+							  && !collection.EqualsSnapshot(LoadedPersister);
 
+			if (forceDirty)
+			{
+				collection.Dirty();
+			}
+		}
 
-	        if (!ActionQueue.PreDeleteUpdate)
-	        {
-	            bool forceDirty = collection.WasInitialized && !collection.IsDirty && !collection.IsPreDeleteUpdateDirty && LoadedPersister != null && LoadedPersister.IsMutable
-	                              && (collection.IsDirectlyAccessible || LoadedPersister.ElementType.IsMutable) && !collection.EqualsSnapshot(LoadedPersister);
-
-	            if (forceDirty)
-	            {
-	                collection.Dirty();
-	            }
-	        }
-	        else
-	        {
-                
-	            bool isDirty = collection.WasInitialized && !collection.IsDirty && LoadedPersister != null && LoadedPersister.IsMutable
-	                           && (collection.IsDirectlyAccessible || LoadedPersister.ElementType.IsMutable) && !collection.EqualsSnapshot(LoadedPersister);
-
-	            bool isPreDeleteDirty = collection.WasInitialized && !collection.IsPreDeleteUpdateDirty && LoadedPersister != null && LoadedPersister.IsMutable
-	                                    && (collection.IsDirectlyAccessible || LoadedPersister.ElementType.IsMutable) //&& !collection.NeedsRecreate(LoadedPersister)
-	                                    && ((collection.GetPreDeleteItems(LoadedPersister, false)).GetEnumerator().MoveNext());
-	            if (isDirty)// & ! isPreDeleteDirty)
-	            {
-	                collection.Dirty();
-	            }
-	            if (isPreDeleteDirty)
-	            {
-	                collection.PreDeleteDirty();
-	            }
-	        }
-	    }
-
-
-	    /// <summary>
+		/// <summary>
 		/// Prepares this CollectionEntry for the Flush process.
 		/// </summary>
 		/// <param name="collection">The <see cref="IPersistentCollection"/> that this CollectionEntry will be responsible for flushing.</param>
@@ -320,8 +286,7 @@ namespace NHibernate.Engine
 
 			// reset all of these values so any previous flush status 
 			// information is cleared from this CollectionEntry
-		    doPreDeleteupdate = false;
-            doupdate = false;
+			doupdate = false;
 			doremove = false;
 			dorecreate = false;
 			reached = false;
@@ -366,7 +331,7 @@ namespace NHibernate.Engine
 			loadedKey = CurrentKey;
 			SetLoadedPersister(CurrentPersister);
 
-			bool resnapshot = collection.WasInitialized && (IsDoremove || IsDorecreate || IsDoupdate || IsDoPreDeleteUpdate);
+			bool resnapshot = collection.WasInitialized && (IsDoremove || IsDorecreate || IsDoupdate);
 			if (resnapshot)
 			{
 				//re-snapshot

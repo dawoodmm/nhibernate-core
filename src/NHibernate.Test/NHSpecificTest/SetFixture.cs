@@ -146,12 +146,7 @@ namespace NHibernate.Test.NHSpecificTest
 			// TODO:  Add CollectionPersisterStub.UpdateRows implementation
 		}
 
-	    public void PreDeleteCollectionActionRows(IPersistentCollection collection, object key, ISessionImplementor session)
-	    {
-            // TODO:  Add CollectionPersisterStub.DeleteRows implementation
-        }
-
-	    public void DeleteRows(IPersistentCollection collection, object key, ISessionImplementor session)
+		public void DeleteRows(IPersistentCollection collection, object key, ISessionImplementor session)
 		{
 			// TODO:  Add CollectionPersisterStub.DeleteRows implementation
 		}

@@ -89,7 +89,7 @@ namespace NHibernate.Persister.Collection
 		bool IsLazy { get; }
 
 		/// <summary>
-		/// Is this collection "inverse", so state changes are not propogated to the database.
+		/// Is this collection "inverse", so state changes are not propagated to the database.
 		/// </summary>
 		bool IsInverse { get; }
 
@@ -195,9 +195,6 @@ namespace NHibernate.Persister.Collection
 		/// <param name="key"></param>
 		/// <param name="session"></param>
 		void Recreate(IPersistentCollection collection, object key, ISessionImplementor session);
-
-
-        void PreDeleteCollectionActionRows(IPersistentCollection collection, object key, ISessionImplementor session);
 
 		/// <summary>
 		/// Delete the persistent state of any elements that were removed from the collection

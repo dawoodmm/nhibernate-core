@@ -46,8 +46,6 @@ namespace NHibernate.Event
 			set { entity = value; }
 		}
 
-	    public bool ForPreDelete { get; set; }
-
 		public string EntityName
 		{
 			get { return entityName; }

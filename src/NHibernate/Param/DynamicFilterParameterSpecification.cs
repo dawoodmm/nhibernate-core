@@ -24,7 +24,7 @@ namespace NHibernate.Param
 		/// </summary>
 		/// <param name="filterName">The name of the filter</param>
 		/// <param name="parameterName">The name of the parameter</param>
-		/// <param name="expectedDefinedType">The paremeter type specified on the filter metadata</param>
+		/// <param name="expectedDefinedType">The parameter type specified on the filter metadata</param>
 		/// <param name="collectionSpan"></param>
 		public DynamicFilterParameterSpecification(string filterName, string parameterName, IType expectedDefinedType, int? collectionSpan)
 		{
@@ -184,19 +184,10 @@ namespace NHibernate.Param
 				return false;
 			}
 
-		    public bool IsDeleteDirty(object x, object deleted, ISessionImplementor session)
-		    {
-		        return false;
-		    }
-
-		    public bool IsDirty(object old, object current, bool[] checkable, ISessionImplementor session)
+			public bool IsDirty(object old, object current, bool[] checkable, ISessionImplementor session)
 			{
 				return false;
 			}
-            public bool IsDeleteDirty(object x, object deleted, bool[] checkable, ISessionImplementor session)
-            {
-                return false;
-            }
 
 			public bool IsModified(object oldHydratedState, object currentState, bool[] checkable, ISessionImplementor session)
 			{

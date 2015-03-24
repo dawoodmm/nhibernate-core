@@ -33,7 +33,7 @@ namespace NHibernate.Event.Default
 
 		protected override object SaveWithGeneratedOrRequestedId(SaveOrUpdateEvent @event)
 		{
-			return SaveWithGeneratedId(@event.Entity, @event.EntityName, null, @event.Session, true, @event.ForPreDelete);
+			return SaveWithGeneratedId(@event.Entity, @event.EntityName, null, @event.Session, true);
 		}
 
 		/// <summary> 

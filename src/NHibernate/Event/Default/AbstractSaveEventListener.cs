@@ -35,9 +35,6 @@ namespace NHibernate.Event.Default
 			get { return null; }
 		}
 
-
-
-
 		protected abstract CascadingAction CascadeAction { get;}
 
 		/// <summary> 
@@ -83,9 +80,9 @@ namespace NHibernate.Event.Default
 		/// <param name="anything">Generally cascade-specific information. </param>
 		/// <param name="source">The session which is the source of this save event. </param>
 		/// <returns> The id used to save the entity. </returns>
-		protected virtual object SaveWithRequestedId(object entity, object requestedId, string entityName, object anything, IEventSource source, bool forPreDelete)
+		protected virtual object SaveWithRequestedId(object entity, object requestedId, string entityName, object anything, IEventSource source)
 		{
-            return PerformSave(entity, requestedId, source.GetEntityPersister(entityName, entity), false, anything, source, true, forPreDelete);
+			return PerformSave(entity, requestedId, source.GetEntityPersister(entityName, entity), false, anything, source, true);
 		}
 
 		/// <summary> 
@@ -105,7 +102,7 @@ namespace NHibernate.Event.Default
 		/// The id used to save the entity; may be null depending on the
 		/// type of id generator used and the requiresImmediateIdAccess value
 		/// </returns>
-        protected virtual object SaveWithGeneratedId(object entity, string entityName, object anything, IEventSource source, bool requiresImmediateIdAccess, bool forPreDelete)
+		protected virtual object SaveWithGeneratedId(object entity, string entityName, object anything, IEventSource source, bool requiresImmediateIdAccess)
 		{
 			IEntityPersister persister = source.GetEntityPersister(entityName, entity);
 			object generatedId = persister.IdentifierGenerator.Generate(source, entity);
@@ -119,7 +116,7 @@ namespace NHibernate.Event.Default
 			}
 			else if (generatedId == IdentifierGeneratorFactory.PostInsertIndicator)
 			{
-                return PerformSave(entity, null, persister, true, anything, source, requiresImmediateIdAccess, forPreDelete);
+				return PerformSave(entity, null, persister, true, anything, source, requiresImmediateIdAccess);
 			}
 			else
 			{
@@ -129,7 +126,7 @@ namespace NHibernate.Event.Default
 						persister.IdentifierType.ToLoggableString(generatedId, source.Factory),
 						persister.IdentifierGenerator.GetType().FullName));
 				}
-                return PerformSave(entity, generatedId, persister, false, anything, source, true, forPreDelete);
+				return PerformSave(entity, generatedId, persister, false, anything, source, true);
 			}
 		}
 
@@ -153,7 +150,7 @@ namespace NHibernate.Event.Default
 		/// The id used to save the entity; may be null depending on the
 		/// type of id generator used and the requiresImmediateIdAccess value
 		/// </returns>
-		protected virtual object PerformSave(object entity, object id, IEntityPersister persister, bool useIdentityColumn, object anything, IEventSource source, bool requiresImmediateIdAccess, bool forPreDelete)
+		protected virtual object PerformSave(object entity, object id, IEntityPersister persister, bool useIdentityColumn, object anything, IEventSource source, bool requiresImmediateIdAccess)
 		{
 			if (log.IsDebugEnabled)
 			{
@@ -187,7 +184,7 @@ namespace NHibernate.Event.Default
 			{
 				return id; //EARLY EXIT
 			}
-            return PerformSaveOrReplicate(entity, key, persister, useIdentityColumn, anything, source, requiresImmediateIdAccess, forPreDelete);
+			return PerformSaveOrReplicate(entity, key, persister, useIdentityColumn, anything, source, requiresImmediateIdAccess);
 		}
 
 		/// <summary> 
@@ -208,7 +205,7 @@ namespace NHibernate.Event.Default
 		/// The id used to save the entity; may be null depending on the
 		/// type of id generator used and the requiresImmediateIdAccess value
 		/// </returns>
-		protected virtual object PerformSaveOrReplicate(object entity, EntityKey key, IEntityPersister persister, bool useIdentityColumn, object anything, IEventSource source, bool requiresImmediateIdAccess, bool forPreDelete)
+		protected virtual object PerformSaveOrReplicate(object entity, EntityKey key, IEntityPersister persister, bool useIdentityColumn, object anything, IEventSource source, bool requiresImmediateIdAccess)
 		{
 			Validate(entity, persister, source);
 
@@ -288,19 +285,12 @@ namespace NHibernate.Event.Default
 				false);
 			//source.getPersistenceContext().removeNonExist( new EntityKey( id, persister, source.getEntityMode() ) );
 
-		    if (!useIdentityColumn)
-		    {
-		        if (!ActionQueue.PreDeleteUpdate || !forPreDelete)
-		        {
-		            source.ActionQueue.AddAction(new EntityInsertAction(id, values, entity, version, persister, source));
-		        }
-		        else
-		        {
-		            source.ActionQueue.AddPreDeleteAction(new EntityInsertAction(id, values, entity, version, persister, source));
-		        }
-		    }
+			if (!useIdentityColumn)
+			{
+				source.ActionQueue.AddAction(new EntityInsertAction(id, values, entity, version, persister, source));
+			}
 
-		    CascadeAfterSave(source, persister, entity, anything);
+			CascadeAfterSave(source, persister, entity, anything);
 
 			MarkInterceptorDirty(entity, persister, source);
 
