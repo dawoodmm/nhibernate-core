@@ -10,150 +10,381 @@ using NHibernate.Persister.Collection;
 
 namespace NHibernate.Action
 {
-	[Serializable]
-	public sealed class CollectionUpdateAction : CollectionAction
-	{
-		private readonly bool emptySnapshot;
+    [Serializable]
+    public sealed class CollectionUpdateAction : CollectionAction
+    {
+        internal readonly bool emptySnapshot;
 
-		public CollectionUpdateAction(IPersistentCollection collection, ICollectionPersister persister, object key,
-									  bool emptySnapshot, ISessionImplementor session)
-			: base(persister, collection, key, session)
-		{
-			this.emptySnapshot = emptySnapshot;
-		}
+        private bool _preDeleteUpdate=false;
 
-		public override void Execute()
-		{
-			object id = Key;
-			ISessionImplementor session = Session;
-			ICollectionPersister persister = Persister;
-			IPersistentCollection collection = Collection;
-			bool affectedByFilters = persister.IsAffectedByEnabledFilters(session);
+        public CollectionUpdateAction(IPersistentCollection collection, ICollectionPersister persister, object key, bool emptySnapshot, ISessionImplementor session)
+            : base(persister, collection, key, session)
+        {
+            this.emptySnapshot = emptySnapshot;
+        }
 
-			bool statsEnabled = session.Factory.Statistics.IsStatisticsEnabled;
-			Stopwatch stopwatch = null;
-			if (statsEnabled)
-			{
-				stopwatch = Stopwatch.StartNew();
-			}
+        public bool PreDeleteUpdate
+        {
+            get { return this._preDeleteUpdate; }
+            set { this._preDeleteUpdate = value; }
+        }
 
-			PreUpdate();
+        public override void Execute()
+        {
+            object id = Key;
+            ISessionImplementor session = Session;
+            ICollectionPersister persister = Persister;
+            IPersistentCollection collection = Collection;
+            bool affectedByFilters = persister.IsAffectedByEnabledFilters(session);
 
-			if (!collection.WasInitialized)
-			{
-				if (!collection.HasQueuedOperations)
-				{
-					throw new AssertionFailure("no queued adds");
-				}
-				//do nothing - we only need to notify the cache...
-			}
-			else if (!affectedByFilters && collection.Empty)
-			{
-				if (!emptySnapshot)
-				{
-					persister.Remove(id, session);
-				}
-			}
-			else if (collection.NeedsRecreate(persister))
-			{
-				if (affectedByFilters)
-				{
-					throw new HibernateException("cannot recreate collection while filter is enabled: "
-												 + MessageHelper.CollectionInfoString(persister, collection, id, session));
-				}
-				if (!emptySnapshot)
-				{
-					persister.Remove(id, session);
-				}
-				persister.Recreate(collection, id, session);
-			}
-			else
-			{
-				persister.DeleteRows(collection, id, session);
-				persister.UpdateRows(collection, id, session);
-				persister.InsertRows(collection, id, session);
-			}
+            bool statsEnabled = session.Factory.Statistics.IsStatisticsEnabled;
+            Stopwatch stopwatch = null;
+            if (statsEnabled)
+            {
+                stopwatch = Stopwatch.StartNew();
+            }
 
-			Session.PersistenceContext.GetCollectionEntry(collection).AfterAction(collection);
+            if (!ActionQueue.PreDeleteUpdate || ! PreDeleteUpdate)
+            {
+                PreUpdate();
+                if (!collection.WasInitialized)
+                {
+                    if (!collection.HasQueuedOperations)
+                    {
+                        throw new AssertionFailure("no queued adds");
+                    }
+                    //do nothing - we only need to notify the cache...
+                }
+                else if (!affectedByFilters && collection.Empty)
+                {
+                    if (!ActionQueue.PreDeleteUpdate)
+                    {
+                        if (!emptySnapshot)
+                        {
+                            persister.Remove(id, session);
+                        }
+                    }
+                }
+                else if (collection.NeedsRecreate(persister))
+                {
+                    if (affectedByFilters)
+                    {
+                        throw new HibernateException("cannot recreate collection while filter is enabled: " + MessageHelper.InfoString(persister, id, persister.Factory));
+                    }
+                    if (!emptySnapshot)
+                    {
+                        persister.Remove(id, session);
+                    }
+                    persister.Recreate(collection, id, session);
+                }
+                else
+                {
 
-			Evict();
+                    if (!ActionQueue.PreDeleteUpdate)
+                    {
+                        persister.DeleteRows(collection, id, session);
+                        persister.UpdateRows(collection, id, session);
+                        persister.InsertRows(collection, id, session);
+                    }
+                    else
+                    {
+                        persister.DeleteRows(collection, id, session);
+                        persister.UpdateRows(collection, id, session);
+                        persister.InsertRows(collection, id, session);
 
-			PostUpdate();
+                    }
+                }
+                Session.PersistenceContext.GetCollectionEntry(collection).AfterAction(collection);
 
-			if (statsEnabled)
-			{
-				stopwatch.Stop();
-				Session.Factory.StatisticsImplementor.UpdateCollection(Persister.Role, stopwatch.Elapsed);
-			}
-		}
+                Evict();
 
-		private void PreUpdate()
-		{
-			IPreCollectionUpdateEventListener[] preListeners = Session.Listeners.PreCollectionUpdateEventListeners;
-			if (preListeners.Length > 0)
-			{
-				PreCollectionUpdateEvent preEvent = new PreCollectionUpdateEvent(Persister, Collection, (IEventSource)Session);
-				for (int i = 0; i < preListeners.Length; i++)
-				{
-					preListeners[i].OnPreUpdateCollection(preEvent);
-				}
-			}
-		}
+                PostUpdate();
 
-		private void PostUpdate()
-		{
-			IPostCollectionUpdateEventListener[] postListeners = Session.Listeners.PostCollectionUpdateEventListeners;
-			if (postListeners.Length > 0)
-			{
-				PostCollectionUpdateEvent postEvent = new PostCollectionUpdateEvent(Persister, Collection, (IEventSource)Session);
-				for (int i = 0; i < postListeners.Length; i++)
-				{
-					postListeners[i].OnPostUpdateCollection(postEvent);
-				}
-			}
-		}
+            }
+            else
+            {
+                this.PreDeletePreUpdate();
 
-		public override BeforeTransactionCompletionProcessDelegate BeforeTransactionCompletionProcess
-		{
-			get 
-			{ 
-				return null; 
-			}
-		}
+                if (!collection.WasInitialized)
+                {
+                }
+                else if (!affectedByFilters && collection.Empty)
+                {
+                    if (!emptySnapshot) persister.Remove(id, session);
+                }
+                else if (collection.NeedsRecreate(persister))
+                {
+                    if (affectedByFilters)
+                    {
+                        throw new HibernateException("cannot recreate collection while filter is enabled: " + MessageHelper.InfoString(persister, id, persister.Factory));
+                    }
+                    if (!emptySnapshot)
+                    {
+                        persister.Remove(id, session);
+                    }
+                    persister.Recreate(collection, id, session);
 
-		public override AfterTransactionCompletionProcessDelegate AfterTransactionCompletionProcess
-		{
-			get
-			{
-				return new AfterTransactionCompletionProcessDelegate((success) =>
-				{
-					// NH Different behavior: to support unlocking collections from the cache.(r3260)
-					if (Persister.HasCache)
-					{
-						CacheKey ck = Session.GenerateCacheKey(Key, Persister.KeyType, Persister.Role);
+                }
+                else
+                {
+                    if (ActionQueue.PreDeleteUpdate)
+                    {
+                        persister.PreDeleteCollectionActionRows(collection, id, session);
+                    }
+                }
 
-						if (success)
-						{
-							// we can't disassemble a collection if it was uninitialized 
-							// or detached from the session
-							if (Collection.WasInitialized && Session.PersistenceContext.ContainsCollection(Collection))
-							{
-								CollectionCacheEntry entry = new CollectionCacheEntry(Collection, Persister);
-								bool put = Persister.Cache.AfterUpdate(ck, entry, null, Lock);
-		
-								if (put && Session.Factory.Statistics.IsStatisticsEnabled)
-								{
-									Session.Factory.StatisticsImplementor.SecondLevelCachePut(Persister.Cache.RegionName);
-								}
-							}
-						}
-						else
-						{
-							Persister.Cache.Release(ck, Lock);
-						}
-					}
-				});
-			}
-		}
-	}
+                Session.PersistenceContext.GetCollectionEntry(collection).AfterAction(collection);
+
+                Evict();
+
+                this.PreDeletePostUpdate();
+
+
+            }
+
+            if (statsEnabled)
+            {
+                stopwatch.Stop();
+                Session.Factory.StatisticsImplementor.UpdateCollection(Persister.Role, stopwatch.Elapsed);
+            }
+        }
+
+        private void PreUpdate()
+        {
+            IPreCollectionUpdateEventListener[] preListeners = Session.Listeners.PreCollectionUpdateEventListeners;
+            if (preListeners.Length > 0)
+            {
+                PreCollectionUpdateEvent preEvent = new PreCollectionUpdateEvent(Persister, Collection, (IEventSource)Session);
+                for (int i = 0; i < preListeners.Length; i++)
+                {
+                    preListeners[i].OnPreUpdateCollection(preEvent);
+                }
+            }
+        }
+
+        private void PostUpdate()
+        {
+            IPostCollectionUpdateEventListener[] postListeners = Session.Listeners.PostCollectionUpdateEventListeners;
+            if (postListeners.Length > 0)
+            {
+                PostCollectionUpdateEvent postEvent = new PostCollectionUpdateEvent(Persister, Collection, (IEventSource)Session);
+                for (int i = 0; i < postListeners.Length; i++)
+                {
+                    postListeners[i].OnPostUpdateCollection(postEvent);
+                }
+            }
+        }
+
+        private void PreDeletePreUpdate()
+        {
+            IPreCollectionUpdateEventListener[] preListeners = Session.Listeners.PreCollectionUpdateEventListeners;
+            if (preListeners.Length > 0)
+            {
+                PreCollectionUpdateEvent preEvent = new PreCollectionUpdateEvent(Persister, Collection, (IEventSource)Session);
+                for (int i = 0; i < preListeners.Length; i++)
+                {
+                    preListeners[i].OnPreUpdateCollection(preEvent);
+                }
+            }
+        }
+
+        private void PreDeletePostUpdate()
+        {
+            IPostCollectionUpdateEventListener[] postListeners = Session.Listeners.PostCollectionUpdateEventListeners;
+            if (postListeners.Length > 0)
+            {
+                PostCollectionUpdateEvent postEvent = new PostCollectionUpdateEvent(Persister, Collection, (IEventSource)Session);
+                for (int i = 0; i < postListeners.Length; i++)
+                {
+                    postListeners[i].OnPostUpdateCollection(postEvent);
+                }
+            }
+        }
+
+        public override BeforeTransactionCompletionProcessDelegate BeforeTransactionCompletionProcess
+        {
+            get { return null; }
+        }
+
+        public override AfterTransactionCompletionProcessDelegate AfterTransactionCompletionProcess
+        {
+            get
+            {
+                return new AfterTransactionCompletionProcessDelegate(
+                    (success) =>
+                        {
+                            // NH Different behavior: to support unlocking collections from the cache.(r3260)
+                            if (Persister.HasCache)
+                            {
+                                CacheKey ck = Session.GenerateCacheKey(Key, Persister.KeyType, Persister.Role);
+
+                                if (success)
+                                {
+                                    // we can't disassemble a collection if it was uninitialized 
+                                    // or detached from the session
+                                    if (Collection.WasInitialized && Session.PersistenceContext.ContainsCollection(Collection))
+                                    {
+                                        CollectionCacheEntry entry = new CollectionCacheEntry(Collection, Persister);
+                                        bool put = Persister.Cache.AfterUpdate(ck, entry, null, Lock);
+
+                                        if (put && Session.Factory.Statistics.IsStatisticsEnabled)
+                                        {
+                                            Session.Factory.StatisticsImplementor.SecondLevelCachePut(Persister.Cache.RegionName);
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    Persister.Cache.Release(ck, Lock);
+                                }
+                            }
+                        });
+            }
+        }
+    }
+
+    [Serializable]
+    public sealed class CollectionPreDeleteUpdateAction : CollectionAction
+    {
+        internal readonly bool emptySnapshot;
+
+        public CollectionPreDeleteUpdateAction(IPersistentCollection collection, ICollectionPersister persister, object key,
+                                      bool emptySnapshot, ISessionImplementor session)
+            : base(persister, collection, key, session)
+        {
+            this.emptySnapshot = emptySnapshot;
+        }
+
+        public override void Execute()
+        {
+            if (!ActionQueue.PreDeleteUpdate)
+                return;
+            object id = Key;
+            ISessionImplementor session = Session;
+            ICollectionPersister persister = Persister;
+            IPersistentCollection collection = Collection;
+            bool affectedByFilters = persister.IsAffectedByEnabledFilters(session);
+
+            bool statsEnabled = session.Factory.Statistics.IsStatisticsEnabled;
+            Stopwatch stopwatch = null;
+            if (statsEnabled)
+            {
+                stopwatch = Stopwatch.StartNew();
+            }
+
+            this.PreDeletePreUpdate();
+
+            if (!collection.WasInitialized)
+            {
+            }
+            else if (!affectedByFilters && collection.Empty)
+            {
+                if(!emptySnapshot)
+                    persister.Remove(id, session);
+            }
+            else if (collection.NeedsRecreate(persister))
+            {
+                if (affectedByFilters)
+                {
+                    throw new HibernateException("cannot recreate collection while filter is enabled: "
+                                                 + MessageHelper.InfoString(persister, id, persister.Factory));
+                }
+                if (!emptySnapshot)
+                {
+                    persister.Remove(id, session);
+                }
+                persister.Recreate(collection, id, session);
+
+            }
+            else
+            {
+                if (ActionQueue.PreDeleteUpdate)
+                {
+                    persister.PreDeleteCollectionActionRows(collection, id, session);
+                    //persister.UpdateRows(collection, id, session);
+                }
+            }
+
+            Session.PersistenceContext.GetCollectionEntry(collection).AfterPreDeleteAction(collection);
+
+            Evict();
+
+            this.PreDeletePostUpdate();
+
+            if (statsEnabled)
+            {
+                stopwatch.Stop();
+                Session.Factory.StatisticsImplementor.UpdateCollection(Persister.Role, stopwatch.Elapsed);
+            }
+        }
+
+        private void PreDeletePreUpdate()
+        {
+            IPreCollectionUpdateEventListener[] preListeners = Session.Listeners.PreCollectionUpdateEventListeners;
+            if (preListeners.Length > 0)
+            {
+                PreCollectionUpdateEvent preEvent = new PreCollectionUpdateEvent(Persister, Collection, (IEventSource)Session);
+                for (int i = 0; i < preListeners.Length; i++)
+                {
+                    preListeners[i].OnPreUpdateCollection(preEvent);
+                }
+            }
+        }
+
+        private void PreDeletePostUpdate()
+        {
+            IPostCollectionUpdateEventListener[] postListeners = Session.Listeners.PostCollectionUpdateEventListeners;
+            if (postListeners.Length > 0)
+            {
+                PostCollectionUpdateEvent postEvent = new PostCollectionUpdateEvent(Persister, Collection, (IEventSource)Session);
+                for (int i = 0; i < postListeners.Length; i++)
+                {
+                    postListeners[i].OnPostUpdateCollection(postEvent);
+                }
+            }
+        }
+
+        public override BeforeTransactionCompletionProcessDelegate BeforeTransactionCompletionProcess
+        {
+            get
+            {
+                return null;
+            }
+        }
+
+        public override AfterTransactionCompletionProcessDelegate AfterTransactionCompletionProcess
+        {
+            get
+            {
+                return new AfterTransactionCompletionProcessDelegate((success) =>
+                {
+                    // NH Different behavior: to support unlocking collections from the cache.(r3260)
+                    if (Persister.HasCache)
+                    {
+                        CacheKey ck = Session.GenerateCacheKey(Key, Persister.KeyType, Persister.Role);
+
+                        if (success)
+                        {
+                            // we can't disassemble a collection if it was uninitialized 
+                            // or detached from the session
+                            if (Collection.WasInitialized && Session.PersistenceContext.ContainsCollection(Collection))
+                            {
+                                CollectionCacheEntry entry = new CollectionCacheEntry(Collection, Persister);
+                                bool put = Persister.Cache.AfterUpdate(ck, entry, null, Lock);
+
+                                if (put && Session.Factory.Statistics.IsStatisticsEnabled)
+                                {
+                                    Session.Factory.StatisticsImplementor.SecondLevelCachePut(Persister.Cache.RegionName);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Persister.Cache.Release(ck, Lock);
+                        }
+                    }
+                });
+            }
+        }
+    }
 }

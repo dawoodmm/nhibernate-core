@@ -1,5 +1,11 @@
 
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+
 using NHibernate.Collection;
+using NHibernate.Event;
+using NHibernate.Event.Default;
 using NHibernate.Impl;
 using NHibernate.Persister.Collection;
 using NHibernate.Type;
@@ -15,7 +21,7 @@ namespace NHibernate.Engine
 		/// </summary>
 		/// <param name="coll">The collection to be updated by unreachability. </param>
 		/// <param name="session">The session.</param>
-		public static void ProcessUnreachableCollection(IPersistentCollection coll, ISessionImplementor session)
+        public static void ProcessUnreachableCollection(IPersistentCollection coll, IEventSource session)
 		{
 			if (coll.Owner == null)
 			{
@@ -27,7 +33,7 @@ namespace NHibernate.Engine
 			}
 		}
 
-		private static void ProcessDereferencedCollection(IPersistentCollection coll, ISessionImplementor session)
+        private static void ProcessDereferencedCollection(IPersistentCollection coll, IEventSource session)
 		{
 			IPersistenceContext persistenceContext = session.PersistenceContext;
 			CollectionEntry entry = persistenceContext.GetCollectionEntry(coll);
@@ -77,10 +83,10 @@ namespace NHibernate.Engine
 			// do the work
 			entry.CurrentPersister = null;
 			entry.CurrentKey = null;
-			PrepareCollectionForUpdate(coll, entry, session.EntityMode, session.Factory);
+            PrepareCollectionForUpdate(coll, entry, session.EntityMode, session.Factory, session);
 		}
 
-		private static void ProcessNeverReferencedCollection(IPersistentCollection coll, ISessionImplementor session)
+        private static void ProcessNeverReferencedCollection(IPersistentCollection coll, IEventSource session)
 		{
 			CollectionEntry entry = session.PersistenceContext.GetCollectionEntry(coll);
 
@@ -89,17 +95,17 @@ namespace NHibernate.Engine
 			entry.CurrentPersister = entry.LoadedPersister;
 			entry.CurrentKey = entry.LoadedKey;
 
-			PrepareCollectionForUpdate(coll, entry, session.EntityMode, session.Factory);
+            PrepareCollectionForUpdate(coll, entry, session.EntityMode, session.Factory, session);
 		}
 
 		/// <summary> 
 		/// Initialize the role of the collection. 
 		/// </summary>
-		/// <param name="collection">The collection to be updated by reachability. </param>
+		/// <param name="collection">The collection to be updated by reachibility. </param>
 		/// <param name="type">The type of the collection. </param>
 		/// <param name="entity">The owner of the collection. </param>
 		/// <param name="session">The session.</param>
-		public static void ProcessReachableCollection(IPersistentCollection collection, CollectionType type, object entity, ISessionImplementor session)
+		public static void ProcessReachableCollection(IPersistentCollection collection, CollectionType type, object entity, IEventSource session)
 		{
 			collection.Owner = entity;
 			CollectionEntry ce = session.PersistenceContext.GetCollectionEntry(collection);
@@ -132,10 +138,10 @@ namespace NHibernate.Engine
 						  (collection.WasInitialized ? " (initialized)" : " (uninitialized)"));
 			}
 
-			PrepareCollectionForUpdate(collection, ce, session.EntityMode, factory);
+            PrepareCollectionForUpdate(collection, ce, session.EntityMode, factory, session);
 		}
 
-		private static void PrepareCollectionForUpdate(IPersistentCollection collection, CollectionEntry entry, EntityMode entityMode, ISessionFactoryImplementor factory)
+        private static void PrepareCollectionForUpdate(IPersistentCollection collection, CollectionEntry entry, EntityMode entityMode, ISessionFactoryImplementor factory, IEventSource session)
 		{
 			//1. record the collection role that this collection is referenced by
 			//2. decide if the collection needs deleting/creating/updating (but don't actually schedule the action yet)
@@ -153,39 +159,46 @@ namespace NHibernate.Engine
 				bool ownerChanged = loadedPersister != currentPersister ||
 					!currentPersister.KeyType.IsEqual(entry.LoadedKey, entry.CurrentKey, entityMode, factory);
 
-				if (ownerChanged)
-				{
-					// do a check
-					bool orphanDeleteAndRoleChanged = loadedPersister != null && 
-						currentPersister != null && loadedPersister.HasOrphanDelete;
+			    if (ownerChanged)
+			    {
+			        // do a check
+			        bool orphanDeleteAndRoleChanged = loadedPersister != null && currentPersister != null && loadedPersister.HasOrphanDelete;
 
-					if (orphanDeleteAndRoleChanged)
-					{
-						throw new HibernateException("Don't change the reference to a collection with cascade=\"all-delete-orphan\": " + loadedPersister.Role);
-					}
+			        if (orphanDeleteAndRoleChanged)
+			        {
+			            throw new HibernateException("Don't change the reference to a collection with cascade=\"all-delete-orphan\": " + loadedPersister.Role);
+			        }
 
-					// do the work
-					if (currentPersister != null)
-					{
-						entry.IsDorecreate = true; // we will need to create new entries
-					}
+			        // do the work
+			        if (currentPersister != null)
+			        {
+			            entry.IsDorecreate = true; // we will need to create new entries
+			        }
 
-					if (loadedPersister != null)
-					{
-						entry.IsDoremove = true; // we will need to remove ye olde entries
-						if (entry.IsDorecreate)
-						{
-							log.Debug("Forcing collection initialization");
-							collection.ForceInitialization(); // force initialize!
-						}
-					}
-				}
-				else if (collection.IsDirty)
-				{
-					// else if it's elements changed
-					entry.IsDoupdate = true;
-				}
+			        if (loadedPersister != null)
+			        {
+			            entry.IsDoremove = true; // we will need to remove ye olde entries
+			            if (entry.IsDorecreate)
+			            {
+			                log.Debug("Forcing collection initialization");
+			                collection.ForceInitialization(); // force initialize!
+			            }
+			        }
+			    }
+			    else
+			    {
+			        if (collection.IsDirty) // else if it's elements changed
+			            entry.IsDoupdate = true;
+
+                    //MarkCollectionForPreDeleteUpdate(collection, entry, session);
+
+			        if (collection.IsPreDeleteUpdateDirty) // something got removed
+			            entry.IsDoPreDeleteUpdate = true;
+
+
+			    }
 			}
 		}
+
 	}
 }

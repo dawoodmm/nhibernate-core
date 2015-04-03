@@ -97,7 +97,9 @@ namespace NHibernate.Collection
 		private bool dirty;
 		private object storedSnapshot;
 
-		/// <summary>
+	    private bool preDeleteUpdateDirty;
+
+	    /// <summary>
 		/// Not called by Hibernate, but used by non-NET serialization, eg. SOAP libraries.
 		/// </summary>
 		protected AbstractPersistentCollection() {}
@@ -127,7 +129,9 @@ namespace NHibernate.Collection
 			get { return dirty; }
 		}
 
-		public object StoredSnapshot
+        public virtual bool IsPreDeleteUpdateDirty { get { return preDeleteUpdateDirty; } }
+
+	    public object StoredSnapshot
 		{
 			get { return storedSnapshot; }
 		}
@@ -244,12 +248,20 @@ namespace NHibernate.Collection
 		public void ClearDirty()
 		{
 			dirty = false;
-		}
+        }
 
-		public void Dirty()
-		{
-			dirty = true;
-		}
+        public void Dirty()
+        {
+            dirty = true;
+        }
+        public virtual void PreDeleteDirty()
+        {
+            preDeleteUpdateDirty = true;
+        }
+        public void ClearPreDeleteDirty()
+        {
+            preDeleteUpdateDirty = false;
+        }
 
 		/// <summary>
 		/// Is the initialized collection empty?
@@ -363,6 +375,15 @@ namespace NHibernate.Collection
 			Dirty();
 		}
 
+
+        protected virtual void DeleteWrite()
+        {
+            Initialize(true);
+            this.PreDeleteDirty();
+            if(ActionQueue.PreDeleteUpdate)
+                this.Dirty();
+        }
+
 		/// <summary>
 		/// Queue an addition, delete etc. if the persistent collection supports it
 		/// </summary>
@@ -407,6 +428,7 @@ namespace NHibernate.Collection
 			operationQueue = null;
 			cachedSize = -1;
 			ClearDirty();
+            this.ClearPreDeleteDirty();
 		}
 
 		/// <summary>
@@ -585,7 +607,7 @@ namespace NHibernate.Collection
 
 		/// <summary>
 		/// To be called internally by the session, forcing
-		/// immediate initialization.
+		/// immediate initalization.
 		/// </summary>
 		/// <remarks>
 		/// This method is similar to <see cref="Initialize" />, except that different exceptions are thrown.
@@ -610,15 +632,15 @@ namespace NHibernate.Collection
 			}
 		}
 
-		/// <summary>
-		/// Gets the Snapshot from the current session the collection is in.
-		/// </summary>
-		protected virtual object GetSnapshot()
-		{
-			return session.PersistenceContext.GetSnapshot(this);
-		}
+	    /// <summary>
+	    /// Gets the Snapshot from the current session the collection is in.
+	    /// </summary>
+	    protected virtual object GetSnapshot()
+	    {
+	        return ActionQueue.PreDeleteUpdate ? StoredSnapshot : session.PersistenceContext.GetSnapshot(this);
+	    }
 
-		/// <summary> Is this instance initialized?</summary>
+	    /// <summary> Is this instance initialized?</summary>
 		public bool WasInitialized
 		{
 			get { return initialized; }
@@ -773,7 +795,12 @@ namespace NHibernate.Collection
 		/// <returns></returns>
 		public abstract object Disassemble(ICollectionPersister persister);
 
-		/// <summary>
+	    public virtual IEnumerable GetPreDeleteItems(ICollectionPersister persister, bool indexIsFormula)
+	    {
+	        return this.GetDeletes(persister, indexIsFormula);
+	    }
+
+	    /// <summary>
 		/// Is this the wrapper for the given underlying collection instance?
 		/// </summary>
 		/// <param name="collection"></param>
@@ -788,7 +815,9 @@ namespace NHibernate.Collection
 		/// <returns></returns>
 		public abstract bool EntryExists(object entry, int i);
 
-		/// <summary>
+	  
+
+	    /// <summary>
 		/// Get all the elements that need deleting
 		/// </summary>
 		public abstract IEnumerable GetDeletes(ICollectionPersister persister, bool indexIsFormula);
@@ -811,7 +840,11 @@ namespace NHibernate.Collection
 		/// <param name="owner"></param>
 		public abstract void InitializeFromCache(ICollectionPersister persister, object disassembled, object owner);
 
-		/// <summary>
+
+
+        public virtual PreEntityDeleteCollectionActionTypes PreEntityDeleteCollectionActionType { get{return PreEntityDeleteCollectionActionTypes.Delete;} }
+
+	    /// <summary>
 		/// Do we need to update this element?
 		/// </summary>
 		/// <param name="entry"></param>
@@ -852,7 +885,7 @@ namespace NHibernate.Collection
 		/// allowing appropriate initializations to occur.
 		/// </summary>
 		/// <param name="persister">The underlying collection persister. </param>
-		/// <param name="anticipatedSize">The anticipated size of the collection after initialization is complete. </param>
+		/// <param name="anticipatedSize">The anticipated size of the collection after initilization is complete. </param>
 		public abstract void BeforeInitialize(ICollectionPersister persister, int anticipatedSize);
 
 		#region - Hibernate Collection Proxy Classes

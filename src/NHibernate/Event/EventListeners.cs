@@ -7,7 +7,7 @@ using NHibernate.Util;
 namespace NHibernate.Event
 {
 	/// <summary> 
-	/// A convenience holder for all defined session event listeners.
+	/// A convience holder for all defined session event listeners.
 	/// </summary>
 	[Serializable]
 	public class EventListeners

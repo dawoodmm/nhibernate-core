@@ -202,6 +202,7 @@ namespace NHibernate.Test.Extralazy
 		[Test]
 		public void IndexFormulaMap()
 		{
+            HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
 			User gavin = null;
 			User turin = null;
 			Group g = null;
@@ -241,7 +242,8 @@ namespace NHibernate.Test.Extralazy
 				smap = ((User) g.Users["gavin"]).Session;
 				Assert.AreEqual(1, smap.Count);
 				gavin = (User) g.Users["gavin"]; // NH: put in JAVA return the previous value
-				g.Users["gavin"] = turin;
+			    g.Users.Remove("gavin");
+                g.Users.Add("turin",turin);
 				s.Delete(gavin);
 				Assert.AreEqual(0, s.CreateQuery("select count(*) from SessionAttribute").UniqueResult<long>());
 				t.Commit();

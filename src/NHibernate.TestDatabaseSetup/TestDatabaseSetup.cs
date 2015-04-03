@@ -56,7 +56,7 @@ namespace NHibernate.TestDatabaseSetup
 
 				using (var cmd = conn.CreateCommand())
 				{
-					cmd.CommandText = "drop database nhibernate";
+                    cmd.CommandText = "drop database nhibernateNew";
 
 					try
 					{
@@ -67,7 +67,7 @@ namespace NHibernate.TestDatabaseSetup
 						Console.WriteLine(e);
 					}
 
-					cmd.CommandText = "create database nhibernate";
+                    cmd.CommandText = "create database nhibernateNew";
 					cmd.ExecuteNonQuery();
 				}
 			}

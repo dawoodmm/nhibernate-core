@@ -42,7 +42,7 @@ namespace NHibernate.Persister.Collection
 			get { return ElementType.IsEntityType; }
 		}
 
-		/// <summary>
+	    /// <summary>
 		/// Generate the SQL DELETE that deletes all rows
 		/// </summary>
 		/// <returns></returns>
@@ -155,6 +155,110 @@ namespace NHibernate.Persister.Collection
 		{
 			return true;
 		}
+        protected override int DoPreDeleteActionRows(object id, IPersistentCollection collection, ISessionImplementor session, SqlCommandInfo preDeleteActionString, ExecuteUpdateResultCheckStyle expectationStyle)
+        {
+            bool deleteByIndex = !IsOneToMany && HasIndex && !indexContainsFormula;
+            int count = 0;
+            var actionType = collection.PreEntityDeleteCollectionActionType;
+            try
+            {
+                IEnumerator preDeletes = collection.GetPreDeleteItems(this, !deleteByIndex).GetEnumerator();
+                int offset = 0;
+                while (preDeletes.MoveNext())
+                {
+                    IDbCommand st = null;
+                    IExpectation expectation = Expectations.AppropriateExpectation(expectationStyle);
+
+                    bool useBatch = expectation.CanBeBatched;
+
+                    if (useBatch)
+                    {
+                        st =
+                            session.Batcher.PrepareBatchCommand(preDeleteActionString.CommandType, preDeleteActionString.Text,
+                                                                preDeleteActionString.ParameterTypes);
+                    }
+                    else
+                    {
+                        st =
+                            session.Batcher.PrepareCommand(preDeleteActionString.CommandType, preDeleteActionString.Text,
+                                                           preDeleteActionString.ParameterTypes);
+                    }
+
+                    try
+                    {
+                        object entry = preDeletes.Current;
+                        //from delete
+                        int loc = 0;
+
+                        //from update
+                        switch (actionType)
+                        {
+                            case PreEntityDeleteCollectionActionTypes.Delete:
+                                loc = offset;
+                                break;
+                            case PreEntityDeleteCollectionActionTypes.UpdateToNull:
+                                loc = WriteElement(st, null, offset, session);
+                                break;
+                        }
+
+                        if (hasIdentifier)
+                        {
+                            WriteIdentifier(st, entry, loc, session);
+                        }
+                        else
+                        {
+                            loc = WriteKey(st, id, loc, session);
+
+                            if (deleteByIndex)
+                            {
+                                WriteIndexToWhere(st, entry, loc, session);
+                            }
+                            else
+                            {
+                                WriteElementToWhere(st, entry, loc, session);
+                            }
+                        }
+                        if (useBatch)
+                        {
+                            session.Batcher.AddToBatch(expectation);
+                        }
+                        else
+                        {
+                            expectation.VerifyOutcomeNonBatched(session.Batcher.ExecuteNonQuery(st), st);
+                        }
+                        count++;
+                    }
+                    catch (Exception e)
+                    {
+                        if (useBatch)
+                        {
+                            session.Batcher.AbortBatch(e);
+                        }
+                        throw;
+                    }
+                    finally
+                    {
+                        if (!useBatch)
+                        {
+                            session.Batcher.CloseCommand(st, null);
+                        }
+                    }
+
+
+                }
+            }
+            catch (DbException sqle)
+            {
+                throw ADOExceptionHelper.Convert(SQLExceptionConverter, sqle,
+                                                 "could not delete collection rows: " + MessageHelper.CollectionInfoString(this, collection, id, session));
+            }
+            return count;
+
+
+
+        }
+
+
 
 		protected override int DoUpdateRows(object id, IPersistentCollection collection, ISessionImplementor session)
 		{

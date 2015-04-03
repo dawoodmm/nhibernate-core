@@ -13,7 +13,7 @@ namespace NHibernate.Type
 	/// </summary>
 	/// <remarks>
 	/// Maps the Property to a single column that is capable of storing nulls in it. If a .net Struct is
-	/// used it will be created with its uninitialized value and then on Update the uninitialized value of
+	/// used it will be created with its unitialized value and then on Update the uninitialized value of
 	/// the Struct will be written to the column - not <see langword="null" />. 
 	/// </remarks>
 	[Serializable]
@@ -333,10 +333,14 @@ namespace NHibernate.Type
 			return 1;
 		}
 
-		public override bool IsDirty(object old, object current, bool[] checkable, ISessionImplementor session)
-		{
-			return checkable[0] && IsDirty(old, current, session);
-		}
+        public override bool IsDirty(object old, object current, bool[] checkable, ISessionImplementor session)
+        {
+            return checkable[0] && IsDirty(old, current, session);
+        }
+        public override bool IsDeleteDirty(object old, object current, bool[] checkable, ISessionImplementor session)
+        {
+            return checkable[0] && IsDeleteDirty(old, current, session);
+        }
 
 		public override bool[] ToColumnNullness(object value, IMapping mapping)
 		{
@@ -365,7 +369,7 @@ namespace NHibernate.Type
 
 		public override bool IsEqual(object x, object y, EntityMode entityMode)
 		{
-			return IsEqual(x, y);
+            return IsEqual(x, y);
 		}
 
 		public virtual bool IsEqual(object x, object y)

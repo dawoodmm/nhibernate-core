@@ -86,6 +86,14 @@ namespace NHibernate.Collection.Generic
 			return ((IDictionary)snapshot).Count == 0;
 		}
 
+        public override PreEntityDeleteCollectionActionTypes PreEntityDeleteCollectionActionType
+        {
+            get
+            {
+                return base.PreEntityDeleteCollectionActionType;// PreEntityDeleteCollectionActionTypes.UpdateToNull;
+            }
+        }
+
 		public override bool IsWrapper(object collection)
 		{
 			return WrappedMap == collection;
@@ -156,31 +164,64 @@ namespace NHibernate.Collection.Generic
 			return result;
 		}
 
-		public override IEnumerable GetDeletes(ICollectionPersister persister, bool indexIsFormula)
+        //public override IEnumerable GetPreDeleteItems(ICollectionPersister persister, bool indexIsFormula)
+        //{
+        //    IList deletes = new List<object>();
+        //    var sn = (IDictionary<TKey, TValue>)StoredSnapshot;
+        //    foreach (var e in sn)
+        //    {
+
+
+        //        if (!WrappedMap.Contains(e))
+        //        {
+        //            object key = e.Key;
+        //            deletes.Add(indexIsFormula ? e.Value : key);
+        //        }
+
+
+        //    }
+        //    return deletes;
+
+        //}
+
+	    public override IEnumerable GetDeletes(ICollectionPersister persister, bool indexIsFormula)
 		{
 			IList deletes = new List<object>();
-			var sn = (IDictionary<TKey, TValue>)GetSnapshot();
-			foreach (var e in sn)
-			{
-				if (!WrappedMap.ContainsKey(e.Key))
-				{
-					object key = e.Key;
-					deletes.Add(indexIsFormula ? e.Value : key);
-				}
-			}
-			return deletes;
+			var sn = (IDictionary<TKey, TValue>)StoredSnapshot;
+		    foreach (var e in sn)
+		    {
+		        if (true)//(!ActionQueue.PreDeleteUpdate)
+		        {
+		            if (!WrappedMap.ContainsKey(e.Key))
+		            {
+		                object key = e.Key;
+		                deletes.Add(indexIsFormula ? e.Value : key);
+		            }
+		        }
+		        else
+		        {
+                    if (!WrappedMap.Contains(e))
+                    {
+                        object key = e.Key;
+                        deletes.Add(indexIsFormula ? e.Value : key);
+                    }
+
+		        }
+		    }
+		    return deletes;
 		}
 
-		public override bool NeedsInserting(object entry, int i, IType elemType)
-		{
-			var sn = (IDictionary)GetSnapshot();
-			var e = (KeyValuePair<TKey, TValue>)entry;
-			return !sn.Contains(e.Key);
-		}
+	    public override bool NeedsInserting(object entry, int i, IType elemType)
+	    {
+	        var sn = (IDictionary)((!ActionQueue.PreDeleteUpdate) ? GetSnapshot() : StoredSnapshot);
+	        var e = (KeyValuePair<TKey, TValue>)entry;
+	        return !sn.Contains(e.Key);
 
-		public override bool NeedsUpdating(object entry, int i, IType elemType)
+	    }
+
+	    public override bool NeedsUpdating(object entry, int i, IType elemType)
 		{
-			var sn = (IDictionary)GetSnapshot();
+            var sn = (IDictionary)((!ActionQueue.PreDeleteUpdate) ? GetSnapshot() : StoredSnapshot);
 			var e = (KeyValuePair<TKey, TValue>)entry;
 			var snValue = sn[e.Key];
 			var isNew = !sn.Contains(e.Key);
@@ -264,8 +305,9 @@ namespace NHibernate.Collection.Generic
 				bool contained = WrappedMap.Remove(key);
 				if (contained)
 				{
-					Dirty();
-				}
+                    if (ActionQueue.PreDeleteUpdate) this.PreDeleteDirty();
+                    else Dirty();
+                }
 				return contained;
 			}
 
@@ -319,14 +361,16 @@ namespace NHibernate.Collection.Generic
 				}
 				Initialize(true);
 				TValue tempObject;
+			    var containedBefore = WrappedMap.ContainsKey(key);
 				WrappedMap.TryGetValue(key, out tempObject);
 				WrappedMap[key] = value;
+                var containsNow = WrappedMap.ContainsKey(key);
 				TValue old2 = tempObject;
 				// would be better to use the element-type to determine
 				// whether the old and the new are equal here; the problem being
 				// we do not necessarily have access to the element type in all
 				// cases
-				if (!ReferenceEquals(value, old2))
+                if (!ReferenceEquals(value, old2) || containsNow!=containedBefore)
 				{
 					Dirty();
 				}
@@ -371,8 +415,9 @@ namespace NHibernate.Collection.Generic
 				Initialize(true);
 				if (WrappedMap.Count != 0)
 				{
-					Dirty();
-					WrappedMap.Clear();
+                    if (ActionQueue.PreDeleteUpdate) this.PreDeleteDirty();
+                    else Dirty();
+                    WrappedMap.Clear();
 				}
 			}
 		}

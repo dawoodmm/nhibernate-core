@@ -81,6 +81,7 @@ namespace NHibernate.Type
 
 			if (x == null || y == null)
 				return false;
+            if (NHibernateUtil.GuessType(x) != NHibernateUtil.GuessType(y)) return false;
 
 			return x.Equals(y) || binaryType.IsEqual(ToBytes(x), ToBytes(y));
 		}

@@ -12,8 +12,13 @@ namespace NHibernate.Impl
 	/// <summary>
 	/// Helper methods for rendering log messages and exception messages
 	/// </summary>
-	public static class MessageHelper
+	public sealed class MessageHelper
 	{
+		private MessageHelper()
+		{
+			// should not be created	
+		}
+
 		/// <summary>
 		/// Generate small message that can be used in traces and exception messages.
 		/// </summary>

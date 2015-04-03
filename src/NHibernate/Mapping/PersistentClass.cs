@@ -4,7 +4,6 @@ using NHibernate.Engine;
 using NHibernate.SqlCommand;
 using NHibernate.Util;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace NHibernate.Mapping
 {
@@ -437,7 +436,15 @@ namespace NHibernate.Mapping
 
 		public virtual int PropertyClosureSpan
 		{
-			get { return properties.Count + joins.Sum(j => j.PropertySpan); }
+			get
+			{
+				int span = properties.Count;
+				foreach (Join join in joins)
+				{
+					span += join.PropertySpan;
+				}
+				return span;
+			}
 		}
 
 		/// <summary> 

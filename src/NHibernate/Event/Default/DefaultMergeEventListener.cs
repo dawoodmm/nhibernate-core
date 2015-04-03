@@ -202,11 +202,11 @@ namespace NHibernate.Event.Default
 
 			IEntityPersister persister = source.GetEntityPersister(@event.EntityName, entity);
 			string entityName = persister.EntityName;
-			
-			@event.Result = this.MergeTransientEntity(entity, entityName, @event.RequestedId, source, copyCache);
+
+            @event.Result = this.MergeTransientEntity(entity, entityName, @event.RequestedId, source, copyCache, @event.ForPreDelete);
 		}
 	
-		private object MergeTransientEntity(object entity, string entityName, object requestedId, IEventSource source, IDictionary copyCache)
+		private object MergeTransientEntity(object entity, string entityName, object requestedId, IEventSource source, IDictionary copyCache, bool forPreDelete)
 		{
 			IEntityPersister persister = source.GetEntityPersister(entityName, entity);
 
@@ -233,7 +233,7 @@ namespace NHibernate.Event.Default
 			try
 			{
 				// try saving; check for non-nullable properties that are null or transient entities before saving
-				this.SaveTransientEntity(copy, entityName, requestedId, source, copyCache);
+				this.SaveTransientEntity(copy, entityName, requestedId, source, copyCache, forPreDelete);
 			}
 			catch (PropertyValueException ex)
 			{
@@ -275,18 +275,18 @@ namespace NHibernate.Event.Default
 			return copy;
 		}
 	
-		private void SaveTransientEntity(object entity, string entityName, object requestedId, IEventSource source, IDictionary copyCache)
+		private void SaveTransientEntity(object entity, string entityName, object requestedId, IEventSource source, IDictionary copyCache, bool forPreDelete)
 		{
 			// this bit is only *really* absolutely necessary for handling
 			// requestedId, but is also good if we merge multiple object
 			// graphs, since it helps ensure uniqueness
 			if (requestedId == null)
 			{
-				SaveWithGeneratedId(entity, entityName, copyCache, source, false);
+                SaveWithGeneratedId(entity, entityName, copyCache, source, false, forPreDelete);
 			}
 			else
 			{
-				SaveWithRequestedId(entity, requestedId, entityName, copyCache, source);
+                SaveWithRequestedId(entity, requestedId, entityName, copyCache, source, forPreDelete);
 			}
 		}
 
@@ -589,9 +589,9 @@ namespace NHibernate.Event.Default
 				EntityEntry copyEntry = @event.Session.PersistenceContext.GetEntry(copy);
 				
 				if (entity == @event.Entity)
-					MergeTransientEntity(entity, copyEntry.EntityName, @event.RequestedId, @event.Session, copyCache);
+                    MergeTransientEntity(entity, copyEntry.EntityName, @event.RequestedId, @event.Session, copyCache, @event.ForPreDelete);
 				else
-					MergeTransientEntity(entity, copyEntry.EntityName, copyEntry.Id, @event.Session, copyCache);
+                    MergeTransientEntity(entity, copyEntry.EntityName, copyEntry.Id, @event.Session, copyCache, @event.ForPreDelete);
 			}
 		}
 		

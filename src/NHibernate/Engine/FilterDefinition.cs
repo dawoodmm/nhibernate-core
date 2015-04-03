@@ -61,7 +61,7 @@ namespace NHibernate.Engine
 		}
 
 		/// <summary>
-		/// Retrieve the type of the named parameter defined for this filter.
+		/// Retreive the type of the named parameter defined for this filter.
 		/// </summary>
 		/// <param name="parameterName">The name of the filter parameter for which to return the type.</param>
 		/// <returns>The type of the named parameter.</returns>

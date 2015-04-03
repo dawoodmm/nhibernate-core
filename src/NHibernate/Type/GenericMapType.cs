@@ -95,9 +95,16 @@ namespace NHibernate.Type
 			var resultPc = result as IPersistentCollection;
 			if (originalPc != null && resultPc != null)
 			{
-				if (!originalPc.IsDirty)
-					resultPc.ClearDirty();
-			}
+                if (!originalPc.IsDirty)
+                    resultPc.ClearDirty();
+                else
+                    resultPc.Dirty();
+
+                if (!originalPc.IsPreDeleteUpdateDirty)
+                    resultPc.ClearPreDeleteDirty();
+                else
+                    resultPc.PreDeleteDirty();
+            }
 
 			return result;
 		}
